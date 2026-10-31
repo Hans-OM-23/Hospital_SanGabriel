@@ -5,6 +5,7 @@ import { environment } from '../../../../environments/environment';
 import { FieldErrors } from '../../../shared/components/field-errors/field-errors';
 import { Icon } from '../../../shared/components/icon/icon';
 import { AuthService } from '../../service/auth';
+import { DEMO_PASSWORD, DEMO_USERS } from '../../service/demo-users';
 
 @Component({
   imports: [FormField, FieldErrors, Icon],
@@ -17,12 +18,14 @@ export class Login {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   readonly isDemo = environment.useMock;
+  readonly demoUsers = DEMO_USERS;
+  readonly demoPassword = DEMO_PASSWORD;
   readonly showPassword = signal(false);
   readonly error = signal('');
   readonly credentials = signal({ email: '', password: '' });
   readonly loginForm = form(this.credentials, (path) => {
     required(path.email, { message: 'Escribe tu correo institucional.' });
-    email(path.email, { message: 'Ingresa un correo válido, por ejemplo: almacen@sgabriel.pe.' });
+    email(path.email, { message: 'Ingresa un correo válido, por ejemplo: example@example.pe' });
     required(path.password, { message: 'Escribe tu contraseña.' });
     validate(path.password, ({ value }) =>
       value().length > 0 && value().trim().length === 0
@@ -31,8 +34,8 @@ export class Login {
     );
   });
 
-  fillDemo(): void {
-    this.credentials.set({ email: 'almacen@sgabriel.pe', password: 'SanGabriel2026!' });
+  fillDemo(email: string): void {
+    this.credentials.set({ email, password: DEMO_PASSWORD });
     this.error.set('');
   }
 

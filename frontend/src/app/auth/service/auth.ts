@@ -3,6 +3,9 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthResponse, LoginCredentials, Session } from '../interface/session';
+import { DEMO_PASSWORD, DEMO_USERS } from './demo-users';
+
+const DEMO_TOKEN = 'san-gabriel-demo-session';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -20,14 +23,15 @@ export class AuthService {
     const email = credentials.email.trim().toLowerCase();
     let response: AuthResponse;
     if (environment.useMock) {
-      if (email !== 'almacen@sgabriel.pe' || credentials.password !== 'SanGabriel2026!') {
+      const user = DEMO_USERS.find((candidate) => candidate.email === email);
+      if (!user || credentials.password !== DEMO_PASSWORD) {
         throw new Error(
           'El correo o la contraseña no son correctos. Revisa tus datos e inténtalo otra vez.',
         );
       }
       response = {
-        accessToken: 'san-gabriel-demo-session',
-        user: { id: 'demo-1', name: 'María Torres', email, role: 'Responsable de almacén' },
+        accessToken: DEMO_TOKEN,
+        user: { ...user },
       };
     } else {
       try {
@@ -79,7 +83,10 @@ export class AuthService {
       const stored = sessionStorage.getItem(this.storageKey);
       if (!stored) return;
       const session: unknown = JSON.parse(stored);
-      if (this.isValidSession(session)) {
+      if (
+        this.isValidSession(session) &&
+        (!environment.useMock || this.isCurrentDemoSession(session))
+      ) {
         this.user.set(session.user);
         this.accessToken.set(session.accessToken);
       } else {
@@ -89,6 +96,19 @@ export class AuthService {
       this.user.set(null);
       this.accessToken.set(null);
     }
+  }
+
+  private isCurrentDemoSession(session: AuthResponse): boolean {
+    return (
+      session.accessToken === DEMO_TOKEN &&
+      DEMO_USERS.some(
+        (user) =>
+          user.id === session.user.id &&
+          user.name === session.user.name &&
+          user.email === session.user.email &&
+          user.role === session.user.role,
+      )
+    );
   }
 
   private isValidSession(value: unknown): value is AuthResponse {

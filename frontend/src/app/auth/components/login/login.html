@@ -101,20 +101,30 @@
           <div class="demo-heading">
             <span class="demo-dot"></span><strong>Explora la demostración</strong>
           </div>
-          <p>Un acceso de ejemplo para conocer el sistema.</p>
+          <p>Elige un usuario para completar sus datos de acceso.</p>
+          <div class="demo-users">
+            @for (user of demoUsers; track user.id) {
+              <button
+                class="demo-user"
+                type="button"
+                (click)="fillDemo(user.email)"
+                [attr.aria-label]="'Usar acceso de ' + user.name"
+                [disabled]="loginForm().submitting()"
+              >
+                <span
+                  ><strong>{{ user.name }}</strong
+                  ><small>{{ user.email }}</small></span
+                >
+                <app-icon name="arrow-up-right" />
+              </button>
+            }
+          </div>
           <dl>
             <div>
-              <dt>Correo</dt>
-              <dd>almacen&#64;sgabriel.pe</dd>
-            </div>
-            <div>
               <dt>Contraseña</dt>
-              <dd>SanGabriel2026!</dd>
+              <dd>{{ demoPassword }}</dd>
             </div>
           </dl>
-          <button type="button" (click)="fillDemo()" [disabled]="loginForm().submitting()">
-            Usar acceso de demostración <app-icon name="arrow-up-right" />
-          </button>
         </aside>
       }
       <p class="access-note"><app-icon name="shield" />Perfil: Responsable de almacén</p>

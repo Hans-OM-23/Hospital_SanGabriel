@@ -329,7 +329,9 @@ form {
 dl {
   display: grid;
   gap: 7px;
-  margin: 0;
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid #dfe5d6;
   font-size: 10px;
 }
 dl > div {
@@ -346,27 +348,57 @@ dd {
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   overflow-wrap: anywhere;
 }
-.demo-access button {
+.demo-users {
+  display: grid;
+  gap: 8px;
+}
+.demo-user {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   width: 100%;
-  padding: 12px 0 0;
-  margin-top: 12px;
-  border: 0;
-  border-top: 1px solid #dfe5d6;
+  padding: 10px 12px;
+  border: 1px solid #dfe5d6;
+  border-radius: 8px;
   color: #4c7244;
-  background: transparent;
+  background: #fafcf7;
   font: inherit;
   font-size: 10px;
   font-weight: 600;
   cursor: pointer;
   text-align: left;
+  &:hover:not(:disabled) {
+    border-color: #a8bea0;
+    background: #fff;
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+  > span {
+    min-width: 0;
+  }
+  strong,
+  small {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+  strong {
+    font-size: 11px;
+    font-weight: 600;
+  }
+  small {
+    margin-top: 4px;
+    color: #7b8b74;
+    font-size: 10px;
+    font-weight: 400;
+  }
 }
-.demo-access button app-icon {
+.demo-user app-icon {
   width: 13px;
   height: 13px;
+  flex-shrink: 0;
 }
 .access-note {
   display: flex;
