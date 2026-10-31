@@ -52,3 +52,31 @@ class InvalidCredentialsError(Exception):
 
     def __init__(self, mensaje: str = MENSAJE) -> None:
         super().__init__(mensaje)
+
+
+class InventoryOperationError(Exception):
+    """Regla de negocio rechazada, sin errores internos de SQL Server."""
+
+    status_code: int = 409
+
+    def __init__(self, message: str, *, field: str | None = None) -> None:
+        super().__init__(message)
+        self.field = field
+
+
+class InventoryConflictError(InventoryOperationError):
+    """Unicidad o cambio incompatible con el historial (409)."""
+
+    status_code = 409
+
+
+class InventoryNotFoundError(InventoryOperationError):
+    """Recurso inexistente (404)."""
+
+    status_code = 404
+
+
+class InventoryInvalidReferenceError(InventoryOperationError):
+    """Referencia o selección inválida (422)."""
+
+    status_code = 422

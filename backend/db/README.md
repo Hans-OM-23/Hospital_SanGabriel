@@ -216,3 +216,25 @@ SQL para la cuenta de aplicación siguen pendientes.
 
 Los procedimientos de **escritura**, sus transacciones y la idempotencia del
 registro de movimientos se implementarán en etapas posteriores.
+
+## Etapa 9 — Altas y actualización del catálogo
+
+`11_procedures_catalog_write.sql` agrega cuatro procedimientos parametrizados:
+`usp_CrearCategoria`, `usp_CrearProducto`, `usp_ActualizarProducto` y
+`usp_CambiarEstadoProducto`. Debe instalarse **después de** `01_create_tables.sql`
+mediante SSMS o sqlcmd; este archivo **todavía no se ha ejecutado**.
+
+Las escrituras se realizan únicamente con `EXEC` desde
+`repositories/inventory_write.py`, usando `Database.transaction()` para
+confirmar o revertir las operaciones. Los errores de dominio se devuelven
+como 404, 409 o 422 y los del controlador ODBC se ocultan en un 503 seguro.
+Los procedimientos protegen unicidad de categorías/códigos, existencia de una
+categoría activa, preservación del estado de un producto durante PUT e
+inmutabilidad de unidad y control de vencimiento si existen movimientos.
+
+**Importante:** los procedimientos futuros de movimientos deben adquirir
+`UPDLOCK, HOLDLOCK` sobre `dbo.Products` antes de actualizar lotes o insertar
+movimientos. La concurrencia completa quedará pendiente hasta esa etapa.
+
+No se crean logins ni se conceden permisos; estos scripts no deben ejecutarse
+en `master`. Las pruebas automatizadas usan cursores simulados, no SQL Server.

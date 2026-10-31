@@ -59,7 +59,7 @@ No se ha conectado ni ejecutado SQL Server en esta etapa.
 
 ## Consultas HTTP de inventario (etapa 8)
 
-La API publica cinco endpoints de **solo lectura**, bajo `/api`, que respetan
+La API publica cinco endpoints de **lectura**, bajo `/api`, que respetan
 `frontend/docs/API-CONTRACT.md`:
 
 | Ruta | Respuesta |
@@ -83,8 +83,7 @@ procedimientos almacenados`. El servicio y la API no ejecutan SQL directo.
 base del hospital hasta que `HospitalSanGabriel` y el archivo
 `db/10_procedures_read.sql` estén instalados, y exista una cuenta de aplicación
 con permisos `EXECUTE`. Un token de prueba se usa solamente en tests; no hay
-usuarios ni inventarios falsos en producción. El endpoint de login y las
-operaciones de escritura continúan pendientes.
+usuarios ni inventarios falsos en producción. El endpoint de login sigue pendiente; la etapa 9 prepara las escrituras de catálogo.
 
 Las pruebas de las rutas inyectan un servicio aislado únicamente en los tests;
 para ejecutarlas desde `backend/`:
@@ -92,3 +91,34 @@ para ejecutarlas desde `backend/`:
 ```bash
 uv run pytest -q
 ```
+
+
+## Etapa 9 — Escritura de categorías y fichas de productos
+
+Se implementan cuatro operaciones adicionales del contrato Angular:
+
+| Ruta | Respuesta |
+| --- | --- |
+| `POST /api/categories` | `201` con `Category` creada |
+| `POST /api/products` | `201` con `Product` creado, sin stock inicial |
+| `PUT /api/products/{id}` | `200` con ficha `Product` actualizada |
+| `PATCH /api/products/{id}/status` | `204` sin cuerpo |
+
+Las rutas requieren un JWT válido del perfil `Responsable de almacén`.
+Los errores se devuelven con `detail` compatible con Angular: `409` para
+categoría/código duplicados y cambios incompatibles con movimientos, `404`
+para producto inexistente, `422` para categoría inválida y `503` ante errores
+de SQL Server, sin filtrar mensajes del controlador.
+
+La cadena de escritura es `apis/inventory_api.py` →
+`services/inventory_write_service.py` → `repositories/inventory_write.py` →
+`dbo.usp_*` de `db/11_procedures_catalog_write.sql`.
+`Database.transaction()` asegura commit/rollback y todos los valores de
+entrada se pasan a procedimientos parametrizados. No hay DML directo desde
+Python ni usuarios de demostración en producción.
+
+**Estado:** código y procedimientos preparados, **NO instalados ni probados
+contra SQL Server**. Las pruebas automatizadas usan dependencias/cursor
+simulados; la instalación SQL, permisos de la cuenta de aplicación y las
+pruebas de concurrencia reales siguen pendientes. El endpoint de login y el
+registro de entradas/salidas también están pendientes.

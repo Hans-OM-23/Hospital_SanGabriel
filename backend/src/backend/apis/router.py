@@ -1,7 +1,7 @@
 """Enrutador agregado de la API bajo el prefijo /api.
 
-Los endpoints de consulta de inventario requieren un JWT válido.
-Las rutas de escritura y el login real se incorporarán en etapas posteriores.
+Las rutas de lectura y escritura de inventario requieren un JWT válido.
+El endpoint de login real se incorporará en una etapa posterior.
 """
 
 from fastapi import APIRouter

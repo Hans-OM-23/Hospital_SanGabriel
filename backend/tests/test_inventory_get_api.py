@@ -194,17 +194,21 @@ def test_cors_para_angular_y_autorizacion_bearer(setup) -> None:
     assert response.headers["access-control-allow-origin"] == "http://localhost:4200"
 
 
-def test_openapi_registra_exclusivamente_cinco_get_de_inventario(setup) -> None:
+def test_openapi_conserva_los_get_y_registra_escrituras_reales(setup) -> None:
     client, _ = setup
     doc = client.get("/openapi.json").json()
     for route in ROUTES:
         assert "get" in doc["paths"][route]
-        assert "post" not in doc["paths"][route]
+        if route in ("/api/products", "/api/categories"):
+            assert "post" in doc["paths"][route]
+        else:
+            assert "post" not in doc["paths"][route]
     assert "/api/auth/login" not in doc["paths"]
     assert "BearerJWT" in doc["components"]["securitySchemes"]
 
 
-def test_no_existen_endpoints_de_escritura_falsos(setup) -> None:
+def test_movimientos_todavia_no_tienen_post_falso_y_escrituras_exigen_token(setup) -> None:
     client, _ = setup
-    for route in ("/api/products", "/api/categories", "/api/movements"):
-        assert client.post(route, json={}).status_code == 405
+    assert client.post("/api/movements", json={}).status_code == 405
+    for route in ("/api/products", "/api/categories"):
+        assert client.post(route, json={}).status_code == 401

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.apis.health_api import router as health_router
 from backend.apis.router import api_router
 from backend.core.config import get_settings
-from backend.core.exceptions import DatabaseError
+from backend.core.exceptions import DatabaseError, InventoryOperationError
 
 
 def create_app() -> FastAPI:
@@ -36,6 +36,13 @@ def create_app() -> FastAPI:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={"detail": "El servicio de inventario no está disponible en este momento."},
         )
+
+    @app.exception_handler(InventoryOperationError)
+    async def inventory_rejected(_request: Request, error: InventoryOperationError) -> JSONResponse:
+        detail: str | dict[str, str] = str(error)
+        if error.field:
+            detail = {"field": error.field, "message": str(error)}
+        return JSONResponse(status_code=error.status_code, content={"detail": detail})
 
     app.include_router(health_router)
     app.include_router(api_router)
