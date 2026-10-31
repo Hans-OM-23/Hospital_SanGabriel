@@ -22,8 +22,8 @@ Incluye:
 
 No incluye todavía:
 
-- Procedimientos almacenados ni lógica de inventario.
-- Endpoints FastAPI ni repositorios.
+- Procedimientos de escritura ni lógica de modificación del inventario.
+- Endpoints FastAPI de inventario.
 - Creación de logins, usuarios de base de datos o permisos. Se hará después de
   comprobar qué cuentas existen y qué permisos tienen realmente.
 
@@ -36,7 +36,8 @@ No incluye todavía:
 | 3 | `02_create_indexes.sql` | Índices no clusterizados. | Obligatorio |
 | 4 | `03_seed_reference_data.sql` | 4 áreas y 4 categorías con identificadores fijos. Sin usuarios ni contraseñas. | Recomendado |
 | 5 | `04_seed_demo_inventory.sql` | 3 productos, 3 lotes y 4 movimientos coherentes para la demo. | **Opcional**, solo demostración |
-| 6 | `99_verify_schema.sql` | Verificación de solo lectura: tablas, FK, CHECK, índices, huérfanos y conciliación de saldos. | Verificación |
+| 6 | `10_procedures_read.sql` | Cinco procedimientos almacenados de consulta. No modifican datos. | **Pendiente de instalar** cuando se disponga de permisos SQL |
+| 7 | `99_verify_schema.sql` | Verificación de solo lectura: tablas, FK, CHECK, índices, huérfanos y conciliación de saldos. | Verificación |
 
 ## Requisitos de permisos
 
@@ -75,6 +76,7 @@ sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/02_create_indexes.sql -b -f 65001
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/03_seed_reference_data.sql -b -f 65001
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/04_seed_demo_inventory.sql -b -f 65001   # opcional
+sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/10_procedures_read.sql -b -f 65001
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/99_verify_schema.sql -b -f 65001
 ```
 
@@ -107,6 +109,7 @@ desde una única llamada de Python.
 - `03` inserta cada fila solo si no existe por id o por nombre.
 - `04` no inserta nada si ya existe cualquiera de los códigos `MED-001`,
   `MAT-001` o `LIM-001`, para evitar seeds parciales.
+- `10` crea/actualiza únicamente procedimientos de consulta (CREATE OR ALTER); no ejecuta operaciones de inventario.
 - `99` es de solo lectura.
 - No existe un script destructivo de reinicio. Si se necesita recrear la
   base, debe hacerse manualmente y con respaldo previo.
@@ -187,3 +190,29 @@ demo muestre vencimientos próximos y vencidos.
 - Implementar repositorios, servicios y endpoints respetando
   `main.py → apis → services → repositories`, el contrato camelCase y las
   fechas `YYYY-MM-DD`.
+
+## Etapa 7 — Consultas mediante procedimientos almacenados
+
+`10_procedures_read.sql` define los siguientes procedimientos, **preparados pero
+todavía no ejecutados en SQL Server**:
+
+| Procedimiento | Repositorio Python | Respuesta del contrato Angular |
+| --- | --- | --- |
+| `dbo.usp_ListarProductos` | `list_products()` | `Product[]` |
+| `dbo.usp_ListarCategorias` | `list_categories()` | `Category[]` |
+| `dbo.usp_ListarLotes` | `list_lots()` | `Lot[]` |
+| `dbo.usp_ListarAreas` | `list_areas()` | `HospitalArea[]` |
+| `dbo.usp_ListarMovimientos` | `list_movements()` | `Movement[]` |
+
+El módulo `src/backend/repositories/inventory_read.py` ejecuta **solo EXEC**
+sobre esos procedimientos mediante `Database.connection()`. No abre conexiones
+al importar el módulo. Los resultados se validan con los schemas Pydantic y
+pueden serializarse a camelCase para Angular.
+
+Importante: no se ha creado ni instalado ningún procedimiento en tu instancia
+local. Las pruebas de esta etapa usan cursores simulados; **no son evidencia de
+lectura real de SQL Server**. La creación de la base y la asignación de permisos
+SQL para la cuenta de aplicación siguen pendientes.
+
+Los procedimientos de **escritura**, sus transacciones y la idempotencia del
+registro de movimientos se implementarán en etapas posteriores.
