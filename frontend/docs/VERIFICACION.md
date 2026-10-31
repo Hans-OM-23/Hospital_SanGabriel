@@ -5,7 +5,7 @@ Verificado el 31 de octubre de 2026.
 ## Comprobaciones automatizadas
 
 - `npm run build`: producción compilada correctamente, sin advertencias.
-- `npm test -- --watch=false`: **12 archivos y 68 pruebas aprobadas**.
+- `ng test --watch=false`: **15 archivos y 102 pruebas aprobadas**.
 - Validaciones de Signal Forms: campos obligatorios, código único, precios, cantidades, fechas y categoría.
 - Entradas y salidas: stock por lote, destino obligatorio, bloqueo de vencidos, saldos y conservación de historial.
 - Persistencia: recarga de datos y fallo de almacenamiento sin modificar el estado.
@@ -27,3 +27,9 @@ Recorrido real con datos de prueba:
 6. Consulta de indicadores actualizados y restauración de la muestra pequeña después de verificar.
 
 La integración con un servidor FastAPI y una base SQL Server queda pendiente de la futura fase de backend. Las respuestas HTTP de las pruebas usan el entorno de pruebas de Angular; no contactan una API real.
+
+## Ampliación: paginación y búsqueda
+
+Se conservan las 68 pruebas anteriores y se agregan pruebas de paginación, navegación y búsqueda. Verifican páginas sin omisiones ni duplicados, búsqueda en registros de otras páginas, reinicio al filtrar o cambiar tamaño, ajuste al reducir resultados, totales completos, estado vacío y continuidad de registro y desactivación. El historial conserva los enlaces de producto, fechas y movimiento seleccionado, y permite buscar por texto combinado con los filtros.
+
+En una vista de prueba independiente se registraron dos categorías adicionales para comprobar la segunda página. Se verificaron Anterior/Siguiente, números de página, búsqueda desde la segunda página y cambio a 10 registros. La revisión incluyó panel estrecho en escritorio (1024 píxeles) y móvil (390 píxeles), sin desbordamiento horizontal. La muestra del código y los datos del origen habitual de la aplicación se conservan.

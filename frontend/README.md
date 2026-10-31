@@ -13,10 +13,12 @@ Desde la carpeta del repositorio:
 ```powershell
 cd frontend
 npm ci
-npm start
+ng s
 ```
 
 Abrir [http://localhost:4200](http://localhost:4200).
+
+Si Angular CLI no está disponible globalmente, `npx ng s` utiliza el CLI instalado en el proyecto.
 
 | Acceso de demostración | Valor                  |
 | ---------------------- | ---------------------- |
@@ -70,6 +72,16 @@ Para volver al ejemplo inicial: **Ayuda y guía de uso → Restablecer datos de 
 - Historial: filtros combinables por producto, tipo, área y fechas; incluye movimientos de productos desactivados.
 - Consultas: productos activos, stock igual o inferior al mínimo, próximos a vencer, vencidos, valor referencial, actividad por periodo y mayores salidas.
 - Diseño clínico adaptable a computadora, tableta y móvil; importes en soles peruanos y alertas de vencimiento a **730 días**, incluyendo el día límite.
+
+## Paginación y búsqueda
+
+Productos, categorías e historial tienen controles **Anterior**, **Siguiente**, números de página y selección de **5, 10 o 20 registros por página**. El rango visible indica cuántos resultados se muestran. Con la muestra inicial pequeña, es normal que solo aparezca una página.
+
+La búsqueda y los filtros se aplican sobre todos los registros antes de paginar. Cambiar la búsqueda, aplicar otros filtros o elegir otro tamaño vuelve a la primera página; una actualización que reduzca los resultados ajusta la página para evitar listados vacíos por estar fuera de rango. Los indicadores y conteos corresponden al conjunto completo filtrado.
+
+En productos se busca por código o nombre; en categorías por nombre o descripción. El historial agrega **Buscar movimiento**, por producto, código, lote, motivo o destino; se combina con los filtros mediante **Aplicar filtros** y se conserva en la URL con el parámetro `busqueda`.
+
+El componente compartido `shared/components/pagination` presenta los controles y `shared/service/pagination-state.ts` mantiene el estado por listado. La paginación actual es local sobre los datos ya cargados; la futura API puede incorporar paginación del servidor cuando el volumen lo requiera.
 
 Los indicadores de stock, vencimiento y valor se calculan para productos activos. El valor referencial es la suma de sus existencias por su precio unitario e incluye sus lotes con saldo, incluso si están vencidos. Los indicadores actuales de inventario no cambian por el filtro de periodo; el filtro afecta los movimientos y el ranking de salidas.
 

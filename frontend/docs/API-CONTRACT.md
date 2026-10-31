@@ -33,6 +33,8 @@ El frontend acepta respuestas HTTP exitosas apropiadas, por ejemplo 200 para lec
 
 Las consultas y filtros actuales se resuelven en el frontend a partir del estado cargado. Las rutas GET preparadas no envían parámetros de paginación, filtros ni un endpoint independiente de indicadores. Al trabajar con inventarios grandes deberá ampliarse el contrato y el adaptador para consultar y paginar desde el servidor.
 
+Los listados de productos, categorías e historial paginan localmente con tamaños 5/10/20 después de filtrar el conjunto completo. Cambiar página no realiza solicitudes ni modifica existencias. En el historial, `busqueda` es un parámetro de navegación del frontend y se combina con los demás filtros; no es todavía un parámetro enviado a FastAPI.
+
 ## Autenticación
 
 Solicitud `POST /auth/login`:

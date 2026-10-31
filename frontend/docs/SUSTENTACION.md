@@ -94,7 +94,7 @@ En la demo, saldo e historial se incorporan a un snapshot y se guardan juntos. E
 | 3   | Entradas y salidas rechazan cantidades vacías, cero, negativas y decimales.                                           | Se repite validación en la demo; deberá existir en la API.                            |
 | 4   | Se muestra saldo por lote y se bloquea cantidad superior a ese saldo.                                                 | La concurrencia real debe resolverse en la transacción del servidor.                  |
 | 5   | El registro válido confirma y enlaza su movimiento con saldos.                                                        | La demo genera el historial local.                                                    |
-| 6   | El ejemplo guarda stock e historial juntos e intenta refrescar; un fallo de consulta no borra el éxito ya confirmado.                                             | La transacción real en SQL Server está pendiente.                                     |
+| 6   | El ejemplo guarda stock e historial juntos e intenta refrescar; un fallo de consulta no borra el éxito ya confirmado. | La transacción real en SQL Server está pendiente.                                     |
 | 7   | Se desactiva el producto; su historial sigue consultable.                                                             | El servidor debe conservar la misma política.                                         |
 | 8   | Mensajes junto a campos y envío inválido bloqueado.                                                                   | La validación del cliente es orientativa, no una barrera de seguridad.                |
 | 9   | Lote vencido deshabilitado para salida y explicación visible.                                                         | La API deberá comprobar fecha y vencimiento nuevamente.                               |
@@ -134,3 +134,9 @@ La evidencia de integración futura deberá incluir solicitudes a FastAPI, respu
 10. ¿Por qué cinco GET paralelos requieren una estrategia de coherencia en el backend?
 
 Preparar las respuestas recorriendo los archivos y ejecutando una operación concreta permite explicar las decisiones con evidencia del código.
+
+## Cómo explicar la paginación
+
+Primero se obtiene el conjunto completo que coincide con la búsqueda y los filtros. `PaginationState` calcula cuántas páginas existen y entrega solo el tramo de registros de la página elegida. Los conteos y los indicadores se calculan antes de recortar la lista.
+
+`Pagination` muestra rango, tamaño y botones; recibe valores del listado y emite la página o el tamaño seleccionado. Cada listado conserva una instancia independiente del estado. Al cambiar la búsqueda o el tamaño se vuelve a la primera página; si se reducen los datos, se ajusta la página al nuevo límite. La paginación actual utiliza datos cargados en el frontend y deja la integración con paginación de servidor para una fase futura.

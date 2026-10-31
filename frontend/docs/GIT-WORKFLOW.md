@@ -2,6 +2,8 @@
 
 El trabajo local se integra en `codex/frontend-inventario`. Las pruebas se mantienen en `codex/frontend-pruebas` y la documentación en `codex/frontend-documentacion`, con commits descriptivos e integración local mediante merges. La rama original `Hans` se conserva. El repositorio no tiene un remoto configurado; por ello no se ha publicado ni abierto un pull request externo.
 
+La ampliación de paginación y búsqueda se desarrolla en `codex/paginacion-listados`, con commits separados para el componente compartido, los listados y la documentación. La implementación anterior queda disponible en `codex/frontend-inventario`.
+
 ## Flujo para las siguientes funcionalidades
 
 1. Partir de la rama de integración actualizada y crear una rama con un nombre descriptivo, por ejemplo `codex/productos` o `codex/movimientos`.
