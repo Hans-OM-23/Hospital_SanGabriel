@@ -192,7 +192,7 @@ def test_openapi_incluye_cuatro_mutaciones_y_preserva_get(setup):
     assert "get" in paths["/api/products"] and "get" in paths["/api/categories"]
     assert "put" in paths["/api/products/{product_id}"]
     assert "patch" in paths["/api/products/{product_id}/status"]
-    assert "post" not in paths["/api/movements"]
+    assert "post" in paths["/api/movements"]
 
 
 def test_cors_permiso_para_metodos_angular(setup):

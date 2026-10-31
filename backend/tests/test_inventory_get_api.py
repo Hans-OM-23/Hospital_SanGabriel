@@ -199,7 +199,7 @@ def test_openapi_conserva_los_get_y_registra_escrituras_reales(setup) -> None:
     doc = client.get("/openapi.json").json()
     for route in ROUTES:
         assert "get" in doc["paths"][route]
-        if route in ("/api/products", "/api/categories"):
+        if route in ("/api/products", "/api/categories", "/api/movements"):
             assert "post" in doc["paths"][route]
         else:
             assert "post" not in doc["paths"][route]
@@ -207,8 +207,8 @@ def test_openapi_conserva_los_get_y_registra_escrituras_reales(setup) -> None:
     assert "BearerJWT" in doc["components"]["securitySchemes"]
 
 
-def test_movimientos_todavia_no_tienen_post_falso_y_escrituras_exigen_token(setup) -> None:
+def test_post_movimientos_ahora_exige_token_y_escrituras_exigen_token(setup) -> None:
     client, _ = setup
-    assert client.post("/api/movements", json={}).status_code == 405
+    assert client.post("/api/movements", json={}).status_code == 401
     for route in ("/api/products", "/api/categories"):
         assert client.post(route, json={}).status_code == 401

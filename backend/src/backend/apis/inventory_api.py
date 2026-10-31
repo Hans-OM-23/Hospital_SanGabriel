@@ -14,13 +14,15 @@ from backend.core.config import Settings, get_settings
 from backend.core.database import Database
 from backend.repositories.inventory_read import InventoryReadRepository
 from backend.repositories.inventory_write import InventoryWriteRepository
+from backend.repositories.inventory_movements import InventoryMovementRepository
 from backend.schemas.area import HospitalAreaResponse
 from backend.schemas.category import CategoryCreate, CategoryResponse
 from backend.schemas.lot import LotResponse
-from backend.schemas.movement import MovementResponse
+from backend.schemas.movement import MovementCreate, MovementResponse
 from backend.schemas.product import ProductCreate, ProductResponse, ProductStatusUpdate, ProductUpdate
 from backend.services.inventory_read_service import InventoryReadService
 from backend.services.inventory_write_service import InventoryWriteService
+from backend.services.inventory_movement_service import InventoryMovementService
 
 router = APIRouter(
     tags=["inventario"],
@@ -123,4 +125,21 @@ def change_product_status(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-__all__ = ["router", "get_inventory_read_service", "get_inventory_write_service"]
+def get_inventory_movement_service(
+    settings: Settings = Depends(get_settings),
+) -> InventoryMovementService:
+    """Construye el servicio de movimientos sin conectar SQL al importar."""
+    return InventoryMovementService(InventoryMovementRepository(Database(settings)))
+
+
+@router.post("/movements", response_model=MovementResponse,
+             status_code=status.HTTP_201_CREATED, summary="Registrar entrada o salida")
+def register_movement(
+    data: MovementCreate,
+    service: InventoryMovementService = Depends(get_inventory_movement_service),
+) -> MovementResponse:
+    return service.register_movement(data)
+
+
+__all__ = ["router", "get_inventory_read_service", "get_inventory_write_service",
+           "get_inventory_movement_service"]

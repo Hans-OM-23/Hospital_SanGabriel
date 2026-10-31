@@ -120,5 +120,28 @@ Python ni usuarios de demostración en producción.
 **Estado:** código y procedimientos preparados, **NO instalados ni probados
 contra SQL Server**. Las pruebas automatizadas usan dependencias/cursor
 simulados; la instalación SQL, permisos de la cuenta de aplicación y las
-pruebas de concurrencia reales siguen pendientes. El endpoint de login y el
-registro de entradas/salidas también están pendientes.
+pruebas de concurrencia reales siguen pendientes. El endpoint de login continúa pendiente; el registro de entradas/salidas
+ya está preparado en la etapa 10, pero no instalado en SQL Server.
+
+
+## Etapa 10 — Registrar movimientos
+
+`POST /api/movements` recibe `MovementInput` y devuelve `Movement` (201) con
+JSON camelCase. El endpoint requiere un JWT del perfil Responsable de almacén.
+El servicio convierte identificadores a UUID; el repositorio invoca únicamente
+`dbo.usp_RegistrarMovimiento` por parámetros y administra commit/rollback.
+El script correspondiente es `db/12_procedures_movements.sql`.
+
+La lógica de SQL gestiona entradas (lote nuevo o existente), salidas por lote
+con área hospitalaria, vencimientos, stock insuficiente y saldos históricos
+del **producto** en una sola transacción. Las operaciones sobre un mismo
+producto se serializan mediante bloqueo de su fila. Los errores previstos
+regresan como 409 o 422 con `detail` compatible con Angular; fallos no
+identificados de SQL Server responden 503 sin revelar el controlador.
+
+**Límite actual:** los procedimientos no se han instalado ni ejecutado
+contra SQL Server. Las pruebas automatizadas usan servicios/cursores
+simulados. Falta probar transacciones concurrentes reales y resolver la
+idempotencia del POST cuando se pierde una respuesta (el frontend aún no envía
+una clave de operación). La autenticación por usuarios persistidos y
+`POST /api/auth/login` siguen pendientes.

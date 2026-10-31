@@ -1,11 +1,11 @@
-# Base de datos `HospitalSanGabriel` — scripts de la etapa 4
+# Base de datos `HospitalSanGabriel` — scripts de instalación y procedimientos
 
-Scripts reproducibles para crear el esquema inicial del Sistema de Gestión de
+Scripts reproducibles para preparar el esquema y los procedimientos del Sistema de Gestión de
 Inventario del Hospital San Gabriel en SQL Server, con autenticación SQL.
 
-**Estos archivos se entregan sin ejecutar.** Ningún script ha sido lanzado
-contra SQL Server durante su creación. La conexión real y la creación de la
-base quedan a cargo del equipo, con sus cuentas locales.
+**Los scripts de este repositorio siguen pendientes de instalación y prueba en
+SQL Server.** La conexión local probada anteriormente fue contra `master`, no
+contra la base hospitalaria.
 
 ## Alcance
 
@@ -22,10 +22,9 @@ Incluye:
 
 No incluye todavía:
 
-- Procedimientos de escritura ni lógica de modificación del inventario.
-- Endpoints FastAPI de inventario.
-- Creación de logins, usuarios de base de datos o permisos. Se hará después de
-  comprobar qué cuentas existen y qué permisos tienen realmente.
+- Creación de logins, usuarios de base de datos o permisos.
+- Persistencia de usuarios para `POST /api/auth/login`.
+- Garantía de idempotencia para reintentos de movimientos tras una respuesta perdida.
 
 ## Archivos
 
@@ -37,7 +36,9 @@ No incluye todavía:
 | 4 | `03_seed_reference_data.sql` | 4 áreas y 4 categorías con identificadores fijos. Sin usuarios ni contraseñas. | Recomendado |
 | 5 | `04_seed_demo_inventory.sql` | 3 productos, 3 lotes y 4 movimientos coherentes para la demo. | **Opcional**, solo demostración |
 | 6 | `10_procedures_read.sql` | Cinco procedimientos almacenados de consulta. No modifican datos. | **Pendiente de instalar** cuando se disponga de permisos SQL |
-| 7 | `99_verify_schema.sql` | Verificación de solo lectura: tablas, FK, CHECK, índices, huérfanos y conciliación de saldos. | Verificación |
+| 7 | `11_procedures_catalog_write.sql` | Cuatro procedimientos de creación/actualización de categorías y productos. | **Pendiente de instalar** |
+| 8 | `12_procedures_movements.sql` | Procedimiento transaccional de entrada/salida por lote. | **Pendiente de instalar** |
+| 9 | `99_verify_schema.sql` | Verificación de solo lectura: tablas, FK, CHECK, índices, huérfanos y conciliación de saldos. | Verificación |
 
 ## Requisitos de permisos
 
@@ -77,6 +78,8 @@ sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/03_seed_reference_data.sql -b -f 65001
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/04_seed_demo_inventory.sql -b -f 65001   # opcional
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/10_procedures_read.sql -b -f 65001
+sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/11_procedures_catalog_write.sql -b -f 65001
+sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/12_procedures_movements.sql -b -f 65001
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/99_verify_schema.sql -b -f 65001
 ```
 
@@ -109,7 +112,7 @@ desde una única llamada de Python.
 - `03` inserta cada fila solo si no existe por id o por nombre.
 - `04` no inserta nada si ya existe cualquiera de los códigos `MED-001`,
   `MAT-001` o `LIM-001`, para evitar seeds parciales.
-- `10` crea/actualiza únicamente procedimientos de consulta (CREATE OR ALTER); no ejecuta operaciones de inventario.
+- `10`, `11` y `12` crean/actualizan procedimientos (CREATE OR ALTER); no ejecutan operaciones de inventario durante la instalación.
 - `99` es de solo lectura.
 - No existe un script destructivo de reinicio. Si se necesita recrear la
   base, debe hacerse manualmente y con respaldo previo.
@@ -214,8 +217,8 @@ local. Las pruebas de esta etapa usan cursores simulados; **no son evidencia de
 lectura real de SQL Server**. La creación de la base y la asignación de permisos
 SQL para la cuenta de aplicación siguen pendientes.
 
-Los procedimientos de **escritura**, sus transacciones y la idempotencia del
-registro de movimientos se implementarán en etapas posteriores.
+Los procedimientos de escritura de las etapas 9 y 10 ya están redactados, pero
+aún no se instalaron. La idempotencia de `POST /movements` sigue pendiente.
 
 ## Etapa 9 — Altas y actualización del catálogo
 
@@ -232,9 +235,35 @@ Los procedimientos protegen unicidad de categorías/códigos, existencia de una
 categoría activa, preservación del estado de un producto durante PUT e
 inmutabilidad de unidad y control de vencimiento si existen movimientos.
 
-**Importante:** los procedimientos futuros de movimientos deben adquirir
-`UPDLOCK, HOLDLOCK` sobre `dbo.Products` antes de actualizar lotes o insertar
-movimientos. La concurrencia completa quedará pendiente hasta esa etapa.
+**Importante:** `12_procedures_movements.sql` adquiere `UPDLOCK, HOLDLOCK`
+sobre `dbo.Products` antes de actualizar lotes e insertar movimientos. Este
+mecanismo todavía requiere comprobación con conexiones SQL concurrentes reales.
 
 No se crean logins ni se conceden permisos; estos scripts no deben ejecutarse
 en `master`. Las pruebas automatizadas usan cursores simulados, no SQL Server.
+
+## Etapa 10 — Registro de entradas y salidas por lote
+
+`12_procedures_movements.sql` define `dbo.usp_RegistrarMovimiento`. El repositorio
+`repositories/inventory_movements.py` llama al SP con nueve parámetros
+posicionales; nunca ejecuta `INSERT` ni `UPDATE` desde Python. Los servicios
+validan las referencias UUID y la API expone `POST /api/movements` (201).
+
+El procedimiento mantiene en una transacción el saldo individual de `Lots`,
+el `stock_before` y `stock_after` del producto completo y el historial de
+`Movements`. Adquiere un bloqueo de actualización sobre la ficha `Products`
+antes de trabajar con lotes, para serializar operaciones del mismo producto;
+rechaza inventario negativo, lotes vencidos en salidas, áreas inexistentes y
+la reutilización de un lote con otra fecha de vencimiento. Controla el límite
+de `INT` y utiliza `BIGINT` para sumar existencias.
+
+**No instalado ni probado en SQL Server:** las pruebas actuales verifican el
+contrato HTTP, los repositorios con cursores simulados y propiedades estáticas
+del script; no demuestran aún la transacción ni su concurrencia en la base real.
+
+**Limitación por resolver antes de producción:** Angular no envía una clave
+de idempotencia. Si la petición se confirma en SQL Server pero se pierde la
+respuesta, un segundo POST puede duplicar el movimiento. Se requiere acordar
+con Hans un identificador por operación y añadir su persistencia/rechazo de
+duplicados en la siguiente integración; no se anuncia garantía de
+exactamente una vez.
