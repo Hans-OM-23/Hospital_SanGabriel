@@ -31,4 +31,5 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = ["integration: requiere SQL Server local y backend/.env"]

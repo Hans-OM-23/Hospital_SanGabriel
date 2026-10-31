@@ -196,3 +196,50 @@ Desde `backend/`:
 ```powershell
 uv run pytest -q
 ```
+
+## Etapa 13 — Diagnóstico y pruebas de integración SQL (sin ejecutar SQL)
+
+Se incorporan herramientas y pruebas para comprobar **más adelante** la instalación
+real. Prepararlas no crea ni modifica bases de datos. Los repositorios de
+negocio siguen usando exclusivamente procedimientos almacenados.
+
+Desde `backend/`, **sin tocar SQL Server**:
+
+```powershell
+uv run python scripts/check_sql_readiness.py
+uv run pytest -q
+```
+
+El primer comando solo comprueba la disponibilidad del controlador ODBC y si
+existen los valores de configuración; **no imprime contraseñas ni claves JWT**.
+El segundo ejecuta las pruebas sin conexión. `test_sql_object_contract.py`
+verifica que los 12 procedimientos declarados en los scripts correspondan a
+los `EXEC` de repositorios Python, incluyendo nombres y orden de parámetros.
+
+**Solo cuando esté instalada** la base `HospitalSanGabriel`, exista un login SQL
+de aplicación autorizado y hayas cambiado `DB_NAME` de `master` a
+`HospitalSanGabriel` en tu `.env` local, podrás hacer el diagnóstico explícito:
+
+```powershell
+uv run python scripts/check_sql_readiness.py --connect
+$env:RUN_DB_TESTS="1"
+uv run pytest -q -m integration
+Remove-Item Env:RUN_DB_TESTS
+```
+
+- `--connect` **rechaza master** y solo consulta `sys.tables`, `sys.procedures`,
+  restricciones, FK compuesta y permisos `EXECUTE`; no escribe datos.
+- Las pruebas de integración comprueban los 12 procedimientos, 6 tablas,
+  restricciones críticas y las cinco consultas de inventario contra SQL real,
+  sin realizar movimientos ni insertar usuarios.
+- Un procedimiento ausente, permiso `EXECUTE` insuficiente o una forma de
+  respuesta incompatible hará fallar las pruebas (es útil para el diagnóstico).
+- Si la cuenta SQL no puede ver determinados metadatos, el diagnóstico puede
+  indicar "ausente/no visible"; confirma los permisos antes de asumir que el
+  objeto no existe.
+- Las pruebas existentes de conexión (dos pruebas de la etapa 3) también se
+  ejecutarán al activar `RUN_DB_TESTS=1`.
+
+**Pendiente:** creación de la base, ejecución real de los scripts `00` a `13`,
+cuenta SQL de aplicación, datos de usuarios y pruebas transaccionales con
+concurrencia. Ninguno se ejecutó durante esta etapa.

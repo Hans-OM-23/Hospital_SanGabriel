@@ -279,3 +279,15 @@ solo para uso interno del backend). **No ejecuta los procedimientos ni crea
 cuentas por sí mismo.** Una instalación funcional requiere un usuario real
 registrado por un administrador y permisos `EXECUTE` para la cuenta SQL de la
 aplicación. Nunca guardar claves ni hashes de usuarios reales en el repositorio.
+
+## Comprobación optativa de instalación (etapa 13)
+
+Una vez instalada la base (sin ejecutar los scripts sobre `master` salvo el
+`00_create_database.sql`), el backend incluye la herramienta de diagnóstico
+`backend/scripts/check_sql_readiness.py` y pruebas de integración optativas.
+La herramienta lee solamente los metadatos de SQL Server, verifica las seis
+tablas, los doce procedimientos de `10` a `13`, restricciones críticas,
+relación compuesta lote-producto y permisos `EXECUTE`. **No crea ni modifica**
+usuarios, tablas o movimientos. `DB_NAME` debe apuntar a `HospitalSanGabriel`;
+el diagnóstico se niega a consultar `master`. Instrucciones en
+`backend/README.md`.
