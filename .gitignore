@@ -4,3 +4,9 @@ frontend/.angular/
 frontend/dist/
 frontend/coverage/
 frontend/.preview/
+
+# Backend - Python y uv
+backend/.venv/
+__pycache__/
+*.pyc
+.env
