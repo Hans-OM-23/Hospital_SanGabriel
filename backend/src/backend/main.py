@@ -1,11 +1,13 @@
 """Inicialización de FastAPI, CORS y registro de routers."""
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.apis.health_api import router as health_router
 from backend.apis.router import api_router
 from backend.core.config import get_settings
+from backend.core.exceptions import DatabaseError
 
 
 def create_app() -> FastAPI:
@@ -26,6 +28,14 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )
+
+    @app.exception_handler(DatabaseError)
+    async def database_unavailable(_request: Request, _error: DatabaseError) -> JSONResponse:
+        # No revelar nombres de cuentas, credenciales ni mensajes de pyodbc.
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": "El servicio de inventario no está disponible en este momento."},
+        )
 
     app.include_router(health_router)
     app.include_router(api_router)

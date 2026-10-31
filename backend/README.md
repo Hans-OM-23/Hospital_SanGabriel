@@ -52,7 +52,43 @@ uv run python -c "import secrets; print(secrets.token_urlsafe(48))"
 - Endpoint `POST /api/auth/login` y su router; no existe todavía.
 - Actualización del hash cuando cambien los parámetros de Argon2id.
 - Renovación o revocación de tokens.
-- Protección de las rutas de inventario con `require_responsable_almacen`
-  cuando existan.
+- Verificación de que un usuario no ha sido desactivado después de emitirle
+  el token (pendiente del repositorio real de usuarios).
 
 No se ha conectado ni ejecutado SQL Server en esta etapa.
+
+## Consultas HTTP de inventario (etapa 8)
+
+La API publica cinco endpoints de **solo lectura**, bajo `/api`, que respetan
+`frontend/docs/API-CONTRACT.md`:
+
+| Ruta | Respuesta |
+| --- | --- |
+| `GET /api/products` | `Product[]` (incluye inactivos) |
+| `GET /api/categories` | `Category[]` |
+| `GET /api/lots` | `Lot[]` |
+| `GET /api/areas` | `HospitalArea[]` |
+| `GET /api/movements` | `Movement[]`, en orden de registro ascendente |
+
+Todos exigen `Authorization: Bearer <JWT>` con rol `Responsable de almacén`.
+Devuelven 401 para token ausente o inválido, 403 para rol insuficiente, 503 si
+SQL Server o su configuración no están disponibles, sin incluir credenciales
+en el mensaje. `/health` permanece público.
+
+La cadena es `main.py → apis/inventory_api.py →
+services/inventory_read_service.py → repositories/inventory_read.py →
+procedimientos almacenados`. El servicio y la API no ejecutan SQL directo.
+
+**IMPORTANTE**: Las rutas son reales, pero no tendrán lecturas exitosas de la
+base del hospital hasta que `HospitalSanGabriel` y el archivo
+`db/10_procedures_read.sql` estén instalados, y exista una cuenta de aplicación
+con permisos `EXECUTE`. Un token de prueba se usa solamente en tests; no hay
+usuarios ni inventarios falsos en producción. El endpoint de login y las
+operaciones de escritura continúan pendientes.
+
+Las pruebas de las rutas inyectan un servicio aislado únicamente en los tests;
+para ejecutarlas desde `backend/`:
+
+```bash
+uv run pytest -q
+```

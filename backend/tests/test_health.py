@@ -44,6 +44,6 @@ def test_cors_rechaza_origen_desconocido() -> None:
     assert "access-control-allow-origin" not in response.headers
 
 
-def test_api_de_inventario_aun_no_expuesta() -> None:
-    assert client.get("/api/products").status_code == 404
-    assert client.get("/api/movements").status_code == 404
+def test_api_de_inventario_requiere_token() -> None:
+    assert client.get("/api/products").status_code == 401
+    assert client.get("/api/movements").status_code == 401
