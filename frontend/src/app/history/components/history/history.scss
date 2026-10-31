@@ -29,6 +29,9 @@
   grid-template-columns: 1.6fr 1.1fr 1.2fr 1fr 1fr;
   gap: 15px;
 }
+.search-filter {
+  grid-column: 1 / -1;
+}
 .filter-actions {
   display: flex;
   align-items: center;

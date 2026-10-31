@@ -30,7 +30,7 @@
       ></label>
     </div>
     <div class="category-items">
-      @for (category of categories(); track category.id) {
+      @for (category of pagination.items(); track category.id) {
         <article class="category-item">
           <span class="category-icon"><app-icon name="layers" /></span>
           <div class="category-content">
@@ -55,6 +55,15 @@
         </div>
       }
     </div>
+    <app-pagination
+      [totalItems]="pagination.totalItems()"
+      [page]="pagination.page()"
+      [pageSize]="pagination.pageSize()"
+      label="categorías"
+      singularLabel="categoría"
+      (pageChange)="pagination.setPage($event)"
+      (pageSizeChange)="pagination.setPageSize($event)"
+    />
   </section>
   <form class="panel category-form" (submit)="save($event)" novalidate>
     <div class="panel-header">

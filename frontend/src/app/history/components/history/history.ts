@@ -8,8 +8,11 @@ import { isDate } from '../../../core/service/date-utils';
 import { InventoryService } from '../../../core/service/inventory.service';
 import { FieldErrors } from '../../../shared/components/field-errors/field-errors';
 import { Icon } from '../../../shared/components/icon/icon';
+import { Pagination } from '../../../shared/components/pagination/pagination';
+import { PaginationState } from '../../../shared/service/pagination-state';
 
 interface HistoryFilters {
+  search: string;
   productId: string;
   type: string;
   areaId: string;
@@ -17,15 +20,21 @@ interface HistoryFilters {
   to: string;
 }
 const emptyFilters = (): HistoryFilters => ({
+  search: '',
   productId: '',
   type: '',
   areaId: '',
   from: '',
   to: '',
 });
+const normalizeSearch = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es-PE');
 
 @Component({
-  imports: [DatePipe, FormField, RouterLink, FieldErrors, Icon],
+  imports: [DatePipe, FormField, RouterLink, FieldErrors, Icon, Pagination],
   selector: 'app-history',
   styleUrl: './history.scss',
   templateUrl: './history.html',
@@ -59,11 +68,23 @@ export class History {
   readonly filtered = computed(() => {
     const filters = this.applied();
     const selected = this.selectedMovementId();
+    const search = normalizeSearch(filters.search.trim());
     return this.inventory
       .movements()
       .filter(
         (movement) =>
           (!selected || movement.id === selected) &&
+          (!search ||
+            normalizeSearch(
+              [
+                this.inventory.productName(movement.productId) ?? '',
+                this.inventory.products().find((product) => product.id === movement.productId)
+                  ?.code ?? '',
+                movement.lotNumber ?? '',
+                movement.reason ?? '',
+                this.inventory.areaName(movement.areaId) ?? '',
+              ].join(' '),
+            ).includes(search)) &&
           (!filters.productId || movement.productId === filters.productId) &&
           (!filters.type || movement.type === filters.type) &&
           (!filters.areaId || movement.areaId === filters.areaId) &&
@@ -76,6 +97,9 @@ export class History {
   readonly entryCount = computed(() => this.filtered().filter((m) => m.type === 'entry').length);
   readonly exitCount = computed(() => this.filtered().filter((m) => m.type === 'exit').length);
   readonly hasFilters = computed(() => Object.values(this.applied()).some(Boolean));
+  readonly pagination = new PaginationState(this.filtered, () =>
+    JSON.stringify({ filters: this.applied(), movement: this.selectedMovementId() }),
+  );
 
   constructor() {
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
@@ -93,6 +117,7 @@ export class History {
   private filtersFromParams(params: ParamMap): HistoryFilters {
     const type = params.get('tipo');
     return {
+      search: params.get('busqueda') ?? '',
       productId: params.get('producto') ?? '',
       type: type === 'entry' || type === 'exit' ? type : '',
       areaId: params.get('area') ?? '',
@@ -104,13 +129,14 @@ export class History {
   async applyFilters(event: Event) {
     event.preventDefault();
     await submit(this.filtersForm, async () => {
-      const filters = this.model();
+      const filters = { ...this.model(), search: this.model().search.trim() };
       this.applied.set({ ...filters });
       this.refreshed.set(false);
       await this.router.navigate([], {
         relativeTo: this.route,
         queryParamsHandling: 'merge',
         queryParams: {
+          busqueda: filters.search || null,
           producto: filters.productId || null,
           tipo: filters.type || null,
           area: filters.areaId || null,
@@ -129,6 +155,7 @@ export class History {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
       queryParams: {
+        busqueda: null,
         producto: null,
         tipo: null,
         area: null,

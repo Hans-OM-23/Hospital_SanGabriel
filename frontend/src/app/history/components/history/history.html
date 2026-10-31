@@ -45,6 +45,15 @@
   </div>
   <form (submit)="applyFilters($event)" novalidate>
     <div class="history-filters">
+      <div class="field search-filter">
+        <label class="field-label" for="history-search">Buscar movimiento</label>
+        <input
+          id="history-search"
+          type="search"
+          placeholder="Producto, lote, motivo o destino"
+          [formField]="filtersForm.search"
+        />
+      </div>
       <div class="field product-filter">
         <label class="field-label" for="history-product">Producto</label
         ><select id="history-product" [formField]="filtersForm.productId">
@@ -124,7 +133,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (movement of filtered(); track movement.id) {
+          @for (movement of pagination.items(); track movement.id) {
             <tr [class.selected-row]="movement.id === selectedMovementId()">
               <td class="date-cell">{{ movement.date | date: 'dd MMM yyyy' }}</td>
               <td class="product-cell">
@@ -193,4 +202,13 @@
       }
     </div>
   }
+  <app-pagination
+    [totalItems]="pagination.totalItems()"
+    [page]="pagination.page()"
+    [pageSize]="pagination.pageSize()"
+    label="movimientos"
+    singularLabel="movimiento"
+    (pageChange)="pagination.setPage($event)"
+    (pageSizeChange)="pagination.setPageSize($event)"
+  />
 </section>

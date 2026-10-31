@@ -4,10 +4,12 @@ import { CategoriesService } from '../../service/categories';
 import { FieldErrors } from '../../../shared/components/field-errors/field-errors';
 import { Icon } from '../../../shared/components/icon/icon';
 import { explainError } from '../../../core/service/api-error';
+import { PaginationState } from '../../../shared/service/pagination-state';
+import { Pagination } from '../../../shared/components/pagination/pagination';
 
 @Component({
   selector: 'app-category-list',
-  imports: [FormField, FieldErrors, Icon],
+  imports: [FormField, FieldErrors, Icon, Pagination],
   templateUrl: './category-list.html',
   styleUrl: './category-list.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,6 +42,8 @@ export class CategoryList {
         (c) => !query || `${c.name} ${c.description}`.toLocaleLowerCase('es').includes(query),
       );
   });
+  readonly pagination = new PaginationState(this.categories, this.filterModel);
+
   async save(event: Event) {
     event.preventDefault();
     if (this.categoryForm().submitting()) return;
@@ -49,9 +53,17 @@ export class CategoryList {
     await submit(this.categoryForm, async () => {
       const input = this.model();
       try {
-        await this.service.save({ name: input.name.trim(), description: input.description.trim() });
+        const category = await this.service.save({
+          name: input.name.trim(),
+          description: input.description.trim(),
+        });
+        const index = this.categories().findIndex((item) => item.id === category.id);
+        if (index >= 0) this.pagination.setPage(Math.floor(index / this.pagination.pageSize()) + 1);
         this.success.set(
-          `Categoría «${input.name.trim()}» registrada. Ya está disponible para los productos.`,
+          `Categoría «${input.name.trim()}» registrada. Ya está disponible para los productos.` +
+            (index < 0 && this.filterModel().search.trim()
+              ? ' No aparece en el listado porque no coincide con la búsqueda actual.'
+              : ''),
         );
         this.categoryForm().reset({ name: '', description: '' });
         return undefined;

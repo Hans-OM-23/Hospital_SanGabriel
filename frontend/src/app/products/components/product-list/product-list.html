@@ -88,7 +88,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (product of products(); track product.id) {
+        @for (product of pagination.items(); track product.id) {
           <tr [class.expanded-row]="selectedId() === product.id">
             <td>
               <div class="product-identity">
@@ -295,6 +295,15 @@
       </tbody>
     </table>
   </div>
+  <app-pagination
+    [totalItems]="pagination.totalItems()"
+    [page]="pagination.page()"
+    [pageSize]="pagination.pageSize()"
+    label="productos"
+    singularLabel="producto"
+    (pageChange)="changePage($event)"
+    (pageSizeChange)="changePageSize($event)"
+  />
 </section>
 <p class="catalog-note">
   <app-icon name="info" /> Los productos desactivados conservan sus lotes y movimientos.
