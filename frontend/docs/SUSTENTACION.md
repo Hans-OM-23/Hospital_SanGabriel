@@ -14,6 +14,8 @@ La API FastAPI está representada por interfaces y un adaptador HTTP inactivo. N
 | Componentes standalone y rutas con carga diferida | Cada pantalla declara sus dependencias y Angular carga su componente cuando se navega a ella.                                                                         |
 | Layout compartido                                 | Menú, cabecera, usuario, ayuda, actualización y mensajes generales se mantienen en `Shell`. Evita repetir la estructura en cada pantalla.                             |
 | Signal Forms                                      | El modelo es una señal; las reglas declaran la validación y `FormField` enlaza cada control. Estado, errores y envío se consultan desde el árbol del formulario.      |
+| Selectores compartidos                            | `SelectControl` y `DatePicker` implementan `FormValueControl<string>`: reutilizan presentación y teclado sin sustituir las validaciones de Signal Forms.              |
+| Angular CDK                                       | Overlay posiciona los paneles fuera de contenedores que podrían recortarlos; A11y controla y restaura el foco en la confirmación de guardado.                         |
 | Servicios de funcionalidades                      | Los componentes resuelven la interacción y delegan las operaciones. Los servicios permiten compartir el comportamiento sin duplicar el acceso a datos.                |
 | `InventoryGateway`                                | Define el límite de acceso a datos. La configuración inyecta `DemoInventory` ahora y deja preparado `HttpInventory` para la futura API.                               |
 | Estado compartido                                 | `InventoryService` mantiene un snapshot con productos, categorías, lotes, áreas y movimientos. Las señales calculadas actualizan las vistas relacionadas.             |
@@ -42,13 +44,22 @@ Ejemplo: `ProductForm`.
 
 1. `model = signal(...)` contiene los valores de la ficha. Un precio vacío se representa inicialmente con `NaN`, que la regla `required` rechaza.
 2. `form(model, schema)` construye el árbol del formulario y declara reglas: campos obligatorios, código único, precio mayor que cero, mínimo entero y fecha condicional.
-3. `[formField]="productForm.code"` enlaza el input al campo. No se usa `ngModel` ni un `FormGroup` tradicional.
+3. `[formField]="productForm.code"` enlaza el input al campo. Los controles personalizados se enlazan igual: su `value` es un modelo y `FormValueControl<string>` comunica estado deshabilitado, requerido, inválido e interacción. No se usa `ngModel` ni un `FormGroup` tradicional.
 4. `FieldErrors` recibe el estado del campo y muestra mensajes cuando está tocado e inválido. Las reglas están junto al modelo del formulario y no dispersas en el HTML.
 5. El envío usa `submit(...)`. Angular marca los campos necesarios, impide ejecutar la acción si los datos son inválidos y expone `submitting()` para evitar envíos simultáneos del mismo formulario.
 6. Antes de guardar se normalizan código y textos. El servicio conserva la responsabilidad del acceso a datos.
 7. Si el servicio devuelve un código duplicado, el error se devuelve a `submit` con `fieldTree: productForm.code`; así aparece junto al input correspondiente.
+8. Solo después de que el servicio resuelve el guardado se abre `SuccessAlert` con una copia del producto confirmado. Una ficha nueva queda lista para otro registro; al editar se conservan sus datos. Los errores y los envíos inválidos no abren la confirmación.
 
 Una demostración útil es escribir `med-001`, un precio cero y un mínimo decimal. Corregir cada campo permite comprobar que los errores se actualizan con el modelo y orientan al usuario.
+
+## Cómo demostrar los controles compartidos
+
+En `shared/components/select-control`, mostrar cómo las opciones llegan desde la pantalla y sus servicios. Buscar un producto o categoría, recorrer las opciones con flechas y confirmar con Enter. Las opciones deshabilitadas, como un lote vencido para salida, siguen visibles con su motivo y no pueden seleccionarse. Escape cierra y devuelve el foco; Tab permite continuar el formulario.
+
+En `shared/components/date-picker`, elegir una fecha en el calendario en español o escribirla como `dd/mm/aaaa`. Cambiar directamente mes y año; probar **Hoy**, **Limpiar** y el teclado. El control muestra fechas de forma local y entrega `aaaa-mm-dd` al modelo. Los límites mínimo/máximo configurados restringen la selección; las validaciones del formulario explican los datos inválidos.
+
+Explicar que los paneles usan CDK Overlay para evitar que las tarjetas o tablas los recorten y para ajustar su posición al espacio disponible. La confirmación `shared/components/success-alert` usa CDK A11y: atrapa el foco, admite X/Escape, no desaparece automáticamente y restaura el foco y el desplazamiento al cerrarse. Probar **Ver productos**, **Seguir registrando** y **Entendido** tras una edición. Si la consulta posterior al guardado falla, el aviso general pide actualizar sin repetir el registro; confirmar la escritura y refrescar la información son resultados distintos.
 
 ## Recorrido de una entrada o salida
 

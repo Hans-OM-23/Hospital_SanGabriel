@@ -85,6 +85,14 @@ El componente compartido `shared/components/pagination` presenta los controles y
 
 Los indicadores de stock, vencimiento y valor se calculan para productos activos. El valor referencial es la suma de sus existencias por su precio unitario e incluye sus lotes con saldo, incluso si están vencidos. Los indicadores actuales de inventario no cambian por el filtro de periodo; el filtro afecta los movimientos y el ranking de salidas.
 
+## Selectores, fechas y confirmación
+
+- `SelectControl` unifica los selectores de productos, categorías, lotes, áreas y filtros. Incluye búsqueda en las listas que la necesitan, indica la opción seleccionada y conserva las opciones deshabilitadas con su explicación. Permite recorrer opciones habilitadas con las flechas, seleccionar con Enter y cerrar con Escape; Tab continúa al siguiente control.
+- `DatePicker` presenta un calendario en español y permite escribir **dd/mm/aaaa**. Ofrece cambio de mes y año, navegación con teclado, **Hoy** y **Limpiar**. Los límites mínimo y máximo configurados deshabilitan fechas fuera del rango; el formulario conserva sus reglas y mensajes de validación. El modelo usa `aaaa-mm-dd` para conservar el contrato de datos.
+- Al guardar un producto aparece una confirmación con su nombre y código: **Producto registrado** o **Producto actualizado**. Permite ver productos o continuar; se cierra con X o Escape, sin autocierre. Solo aparece después de que el servicio confirma el guardado. Un formulario inválido o un fallo de guardado muestra los errores correspondientes y no abre la confirmación.
+
+Ambos selectores implementan `FormValueControl<string>` y se enlazan con `[formField]`, por lo que siguen usando **Signal Forms** para valor, estado deshabilitado y validación. Angular CDK posiciona los paneles sobre las tablas y formularios mediante Overlay; A11y mantiene el foco dentro de la confirmación y lo devuelve al cerrarla. La confirmación de guardado no asegura un refresco exitoso: si falla la consulta posterior, el aviso general indica actualizar sin repetir la operación.
+
 ## Organización del código
 
 El proyecto se creó con `ng new frontend` usando Angular CLI 22. Los componentes y servicios se generaron mediante `ng generate`; los contratos TypeScript se organizaron en subcarpetas `interface` por funcionalidad.
@@ -99,7 +107,7 @@ src/app/
 ├── dashboard/    components, service, interface: consultas e indicadores
 ├── layout/       components: menú, cabecera, ayuda y estructura común
 ├── core/         service, interface: estado, contratos y adaptadores
-└── shared/       components: iconos y mensajes de errores
+└── shared/       components, service, interface: controles, errores y paginación
 ```
 
 Se crean subcarpetas según las necesidades de cada funcionalidad. Los formularios y filtros usan **Signal Forms** (`form`, `FormField`, `required`, `validate` y `submit` donde hay envío). Los servicios de funcionalidades delegan en `InventoryService`, que actualiza un estado compartido basado en señales después de cada operación.
@@ -111,7 +119,7 @@ Puede ejecutarse después de restablecer el ejemplo. No necesita grandes conjunt
 | Comprobación              | Acción y resultado esperado                                                                                                                                                                                                |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Acceso                    | Entrar con las credenciales de ejemplo; probar antes una contraseña incorrecta y un correo inválido para ver los mensajes.                                                                                                 |
-| RF01 · Productos          | Registrar `MED-004` con descripción, categoría, unidad, precio positivo y mínimo entero. Aparece con stock cero; editar el nombre y buscarlo por código y nombre.                                                          |
+| RF01 · Productos          | Registrar `MED-004` con descripción, categoría, unidad, precio positivo y mínimo entero. Revisar la confirmación con nombre y código; ver el producto con stock cero, editarlo y buscarlo por código y nombre.             |
 | RF01 · Validación         | Intentar el código `med-001`: debe advertir el duplicado. Probar precio vacío, cero y negativo; mínimo decimal; campos obligatorios vacíos y vencimiento requerido. No debe guardarse un formulario inválido.              |
 | RF02 · Categorías         | Registrar una categoría nueva y comprobar que aparece en el formulario de producto. Intentar el mismo nombre con cambios de mayúsculas o espacios.                                                                         |
 | RF03 · Entradas           | Registrar 3 unidades de `MED-004`, motivo Compra y lote `DEM-001`. Si tiene vencimiento, indicar una fecha válida. El saldo aumenta y la confirmación enlaza el movimiento. Repetir con Donación o Devolución si se desea. |

@@ -4,6 +4,8 @@ El trabajo local se integra en `codex/frontend-inventario`. Las pruebas se manti
 
 La ampliación de paginación y búsqueda se desarrolla en `codex/paginacion-listados`, con commits separados para el componente compartido, los listados y la documentación. La implementación anterior queda disponible en `codex/frontend-inventario`.
 
+La mejora de selectores y confirmaciones se desarrolla en `codex/selectores-alertas`, a partir de la ampliación anterior. Se separan los controles compartidos con sus pruebas, la integración en las pantallas y la documentación.
+
 ## Flujo para las siguientes funcionalidades
 
 1. Partir de la rama de integración actualizada y crear una rama con un nombre descriptivo, por ejemplo `codex/productos` o `codex/movimientos`.
