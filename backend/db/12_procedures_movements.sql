@@ -1,7 +1,7 @@
 /*
     Hospital San Gabriel — etapa 10: registro transaccional de movimientos.
 
-    PENDIENTE DE INSTALACIÓN EN SQL SERVER. No se ejecuta desde Python.
+    Instalar desde SSMS cuando se prepare una nueva instancia SQL Server. No se ejecuta desde Python.
     Requiere 00_create_database.sql y 01_create_tables.sql; instalar con SSMS/sqlcmd.
     Se invoca desde el repositorio exclusivamente mediante parámetros pyodbc.
 

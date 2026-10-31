@@ -1,6 +1,6 @@
 """Consultas de inventario vía procedimientos almacenados de SQL Server.
 
-Etapa 7: solo lectura. Los procedimientos se definen en
+Este repositorio es solo de lectura. Los procedimientos se definen en
 ``backend/db/10_procedures_read.sql`` y NO se ejecutan al importar el módulo.
 
 No hay acceso directo a tablas desde Python, SQL dinámico, conexión en tiempo

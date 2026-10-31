@@ -7,9 +7,9 @@
     de SSMS/sqlcmd; no enviar este archivo completo por pyodbc.
 
     Las cinco operaciones del backend SOLO leen datos. Las mutaciones y su
-    control transaccional se implementarán en una etapa posterior.
+    control transaccional se implementan en procedimientos de escritura separados.
 
-    Permisos futuros: conceder EXECUTE a una cuenta SQL de aplicación con
+    Permisos recomendados: conceder EXECUTE a una cuenta SQL de aplicación con
     privilegios mínimos. No se crean logins ni se conceden permisos aquí.
 */
 USE [HospitalSanGabriel];

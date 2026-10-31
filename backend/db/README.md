@@ -1,293 +1,60 @@
-# Base de datos `HospitalSanGabriel` — scripts de instalación y procedimientos
+# SQL Server — HospitalSanGabriel
 
-Scripts reproducibles para preparar el esquema y los procedimientos del Sistema de Gestión de
-Inventario del Hospital San Gabriel en SQL Server, con autenticación SQL.
+Scripts de instalación reproducible para la base de datos hospitalaria. El
+modelo incluye **6 tablas**, claves GUID, relaciones, restricciones, índices,
+**12 procedimientos almacenados** y transacciones para entradas/salidas.
 
-**Los scripts de este repositorio siguen pendientes de instalación y prueba en
-SQL Server.** La conexión local probada anteriormente fue contra `master`, no
-contra la base hospitalaria.
+## Orden exacto en SSMS
 
-## Alcance
+Abrir **cada archivo completo** en SQL Server Management Studio y ejecutar
+con **F5**, en este orden:
 
-Incluye:
+| Orden | Archivo | Propósito |
+|---|---|---|
+| 1 | `00_create_database.sql` | Crea la base si no existe |
+| 2 | `01_create_tables.sql` | 6 tablas y sus restricciones |
+| 3 | `02_create_indexes.sql` | Índices de consultas |
+| 4 | `03_seed_reference_data.sql` | 4 categorías y 4 áreas |
+| 5 | `04_seed_demo_inventory.sql` | 3 productos, 3 lotes, 4 movimientos (demo) |
+| 6 | `10_procedures_read.sql` | 5 consultas |
+| 7 | `11_procedures_catalog_write.sql` | 4 operaciones de catálogo |
+| 8 | `12_procedures_movements.sql` | 1 operación transaccional de movimientos |
+| 9 | `13_procedures_users.sql` | 2 consultas para autenticación |
+| 10 | `99_verify_schema.sql` | Diagnóstico de solo lectura al final |
 
-- Creación de la base `HospitalSanGabriel` si no existe.
-- Tablas `Users`, `Categories`, `Products`, `HospitalAreas`, `Lots` y
-  `Movements`, con claves primarias, foráneas, `UNIQUE`, `CHECK` y valores por
-  defecto.
-- Índices de apoyo para historial, lotes y catálogos.
-- Catálogos de referencia (áreas y categorías).
-- Datos de demostración opcionales y separados.
-- Consultas de verificación de solo lectura.
+Si el sistema **ya está instalado en tu SQL Server**, no es necesario volver
+a ejecutar los scripts. El script `04` es solo para una base de demostración.
+Los scripts no incluyen credenciales personales ni usuarios de aplicación.
 
-No incluye todavía:
+## Comprobar la instalación
 
-- Creación de logins, usuarios de base de datos o permisos.
-- Aprovisionamiento de usuarios y permisos administrativos (sin contraseñas versionadas).
-- Garantía de idempotencia para reintentos de movimientos tras una respuesta perdida.
-
-## Archivos
-
-| Orden | Archivo | Contenido | Ejecución |
-| ----- | ------- | --------- | --------- |
-| 1 | `00_create_database.sql` | Crea `HospitalSanGabriel` con colación `Modern_Spanish_100_CI_AS` si no existe. No crea tablas en `master`. | Obligatorio |
-| 2 | `01_create_tables.sql` | Tablas, PK, FK, CHECK, UNIQUE y defaults. | Obligatorio |
-| 3 | `02_create_indexes.sql` | Índices no clusterizados. | Obligatorio |
-| 4 | `03_seed_reference_data.sql` | 4 áreas y 4 categorías con identificadores fijos. Sin usuarios ni contraseñas. | Recomendado |
-| 5 | `04_seed_demo_inventory.sql` | 3 productos, 3 lotes y 4 movimientos coherentes para la demo. | **Opcional**, solo demostración |
-| 6 | `10_procedures_read.sql` | Cinco procedimientos almacenados de consulta. No modifican datos. | **Pendiente de instalar** cuando se disponga de permisos SQL |
-| 7 | `11_procedures_catalog_write.sql` | Cuatro procedimientos de creación/actualización de categorías y productos. | **Pendiente de instalar** |
-| 8 | `12_procedures_movements.sql` | Procedimiento transaccional de entrada/salida por lote. | **Pendiente de instalar** |
-| 9 | `13_procedures_users.sql` | Dos procedimientos de búsqueda de usuarios para el login con Argon2id. | **Pendiente de instalar** |
-| 10 | `99_verify_schema.sql` | Verificación de solo lectura: tablas, FK, CHECK, índices, huérfanos y conciliación de saldos. | Verificación |
-
-## Requisitos de permisos
-
-- **Cuenta administradora**: debe poder crear bases de datos (por ejemplo,
-  miembro del rol de servidor `dbcreator` o con `CREATE ANY DATABASE`) y ser
-  `db_owner` de `HospitalSanGabriel` para ejecutar `01`–`03`.
-- **Cuenta de aplicación**: se definirá en una etapa posterior. Será la que
-  use FastAPI mediante `DB_USER` y `DB_PASSWORD` del archivo `backend/.env`, y
-  solo tendrá permiso de ejecución sobre los procedimientos almacenados.
-- **No se asume que `Auditor1` sea administradora.** Antes de usarla, se debe
-  comprobar su identidad y permisos con consultas de solo lectura:
-
-  ```sql
-  SELECT
-      SUSER_SNAME()                 AS cuenta_actual,
-      IS_SRVROLEMEMBER('sysadmin')  AS es_sysadmin,
-      IS_SRVROLEMEMBER('dbcreator') AS es_dbcreator;
-
-  SELECT * FROM fn_my_permissions(NULL, 'SERVER');
-  ```
-
-  Si no cuenta con permisos suficientes, se debe usar otra cuenta
-  administradora proporcionada por el responsable del servidor.
-- **No se usa `sa`** ni autenticación integrada de Windows para la aplicación.
-- Este directorio **no** contiene scripts de `CREATE LOGIN` ni `GRANT`, ni
-  contraseñas, ni cadenas de conexión.
-
-## Orden de ejecución
-
-Desde la raíz del repositorio, con `sqlcmd` (la contraseña se escribe en el
-momento; no se guarda en el repositorio ni en el historial de comandos):
-
-```powershell
-sqlcmd -S <servidor> -U <cuenta_administradora> -d master -i backend/db/00_create_database.sql -b -f 65001
-sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/01_create_tables.sql -b -f 65001
-sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/02_create_indexes.sql -b -f 65001
-sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/03_seed_reference_data.sql -b -f 65001
-sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/04_seed_demo_inventory.sql -b -f 65001   # opcional
-sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/10_procedures_read.sql -b -f 65001
-sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/11_procedures_catalog_write.sql -b -f 65001
-sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/12_procedures_movements.sql -b -f 65001
-sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/13_procedures_users.sql -b -f 65001
-sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/99_verify_schema.sql -b -f 65001
+```sql
+USE HospitalSanGabriel;
+GO
+SELECT (SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo')) AS Tablas,
+       (SELECT COUNT(*) FROM sys.procedures WHERE schema_id = SCHEMA_ID('dbo')) AS Procedimientos,
+       (SELECT COUNT(*) FROM dbo.Categories) AS Categorias,
+       (SELECT COUNT(*) FROM dbo.HospitalAreas) AS Areas;
+EXEC dbo.usp_ListarProductos;
 ```
 
-`-b` hace que `sqlcmd` termine con código de error si un script falla.
-`-f 65001` indica que los archivos están en UTF-8; es necesario para que los
-acentos y la `ñ` (`Donación`, `Hospitalización`, `almacén`, `Reposición`) se
-lean correctamente, porque los `.sql` se guardan en UTF-8 sin BOM. Con SSMS no
-hace falta el parámetro, porque detecta la codificación.
+Se esperan 6 tablas, 12 procedimientos, 4 categorías y 4 áreas al instalar
+los datos iniciales. El número de productos/movimientos puede ser mayor si
+ya se hicieron pruebas desde Swagger. Ejecutar `99_verify_schema.sql` para
+comprobar claves, índices, relaciones y conciliación de saldos; las consultas
+marcadas «Esperado: 0 filas» no deberían devolver inconsistencias.
 
-También se pueden abrir los archivos en SQL Server Management Studio y
-ejecutarlos en ese orden.
+## Integridad
 
-Los scripts usan `GO`, por lo que deben ejecutarse con `sqlcmd` o SSMS, no
-desde una única llamada de Python.
+- `Products.code` es único también para productos inactivos.
+- El número del lote es único dentro de cada producto y conserva vencimiento.
+- `usp_RegistrarMovimiento` bloquea la ficha de producto mientras calcula y
+  actualiza lotes, y registra el movimiento en una transacción atómica.
+- Salidas requieren lote, área, cantidad disponible y lote no vencido.
+- `stock_before` y `stock_after` del movimiento son del producto completo.
+- No hay borrado físico; el producto se desactiva para preservar su historial.
 
-## Seguridad
-
-- No se versionan contraseñas, cadenas de conexión ni el archivo `.env`.
-- `DB_USER` y `DB_PASSWORD` se configurarán solo cuando exista la cuenta de
-  aplicación y sus permisos.
-- No se agregan variables `PORT` ni `DB_PORT`. Si se necesita TCP, el puerto
-  forma parte de `DB_SERVER` (`localhost,1433`).
-- `Users.password_hash` solo admite un hash (bcrypt/argon2id u otro), nunca
-  texto plano.
-
-## Idempotencia y seguridad de los scripts
-
-- `00` crea la base solo si no existe y **no la elimina ni la sobrescribe**.
-- `01` y `02` usan `IF OBJECT_ID` / `IF NOT EXISTS` sobre `sys.indexes`.
-- `03` inserta cada fila solo si no existe por id o por nombre.
-- `04` no inserta nada si ya existe cualquiera de los códigos `MED-001`,
-  `MAT-001` o `LIM-001`, para evitar seeds parciales.
-- `10`, `11` y `12` crean/actualizan procedimientos (CREATE OR ALTER); no ejecutan operaciones de inventario durante la instalación.
-- `99` es de solo lectura.
-- No existe un script destructivo de reinicio. Si se necesita recrear la
-  base, debe hacerse manualmente y con respaldo previo.
-
-## Normalización y colación
-
-La base usa una colación CI (insensible a mayúsculas), necesaria para que
-nombres como `Medicamentos` sean únicos sin distinguir mayúsculas, igual que
-la validación del frontend.
-
-Para las claves que deben ser exactas, `01_create_tables.sql` no confía en la
-colación CI:
-
-- `Products.code` y `Lots.number` se validan con
-  `COLLATE Latin1_General_BIN2` para exigir mayúsculas y comparación exacta.
-- Las restricciones `UNIQUE` siguen siendo CI para impedir duplicados escritos
-  con distinta capitalización.
-- La normalización definitiva (`TRIM` + `UPPER`) se completará en los
-  procedimientos almacenados antes de insertar o actualizar, tal como exige
-  el contrato de la API.
-
-## Orden de los movimientos y saldos
-
-- `movement_seq BIGINT IDENTITY` ofrece un orden interno estable y
-  determinista para el historial y para desempatar fechas iguales.
-- Es monótono, pero **puede tener huecos**: un `ROLLBACK` consume números.
-  Los huecos no afectan a ningún cálculo.
-- **No representa el orden global exacto de `COMMIT` entre productos
-  distintos.** Lo que debe ser consistente es la cadena de
-  `stockBefore`/`stockAfter` **dentro de cada producto**.
-- Esa consistencia se garantizará en la etapa de procedimientos almacenados
-  serializando las operaciones por producto (bloqueo de la fila del producto
-  dentro de la transacción) y calculando los saldos antes y después del
-  cambio. `movement_seq` se asigna mientras se mantiene ese bloqueo, por lo
-  que el orden dentro del producto coincide con el orden de confirmación.
-- `CK_Movements_Balance` obliga a que
-  `stock_after = stock_before ± quantity`; los procedimientos deberán además
-  respetar la cadena entre movimientos consecutivos del mismo producto.
-
-## Consistencia de los datos de demostración
-
-`04_seed_demo_inventory.sql` inserta:
-
-| Producto | Lote | Entradas | Salidas | Stock del lote | Último `stock_after` |
-| -------- | ---- | -------- | ------- | -------------- | -------------------- |
-| `MED-001` | `PAR-026` | 50 | 10 | 40 | 40 |
-| `MAT-001` | `GUA-026` | 4 | 0 | 4 | 4 |
-| `LIM-001` | `ALC-025` | 2 | 0 | 2 | 2 |
-
-Las fechas son relativas al día de ejecución: `PAR-026` vence en 180 días,
-`GUA-026` en 900 días y `ALC-025` ya está vencido (5 días atrás), para que la
-demo muestre vencimientos próximos y vencidos.
-
-## Verificación
-
-1. Ejecutar `99_verify_schema.sql` y revisar:
-   - Las 6 tablas existen.
-   - `FK_Movements_Lots_Product` tiene dos columnas (`lot_id`, `product_id`).
-   - Las restricciones `CHECK`, `UNIQUE` e índices esperados aparecen.
-   - Todas las consultas marcadas “Esperado: 0 filas” devuelven 0 filas.
-2. Con la cuenta administradora, dentro de una transacción revertida, probar
-   que la base rechaza datos inválidos (código duplicado, stock negativo,
-   salida sin área, movimiento con lote de otro producto, saldo incoherente).
-3. Cuando exista la cuenta de aplicación, comprobar que puede conectarse con
-   `Database.test_connection()` y que **no** puede ejecutar DDL ni modificar
-   tablas directamente.
-4. Las pruebas unitarias de la capa de datos no sustituyen esta verificación:
-   la conexión real solo se afirmará cuando se ejecute con credenciales
-   locales válidas.
-
-## Etapas siguientes
-
-- Crear la cuenta administradora y la cuenta de aplicación, y verificar sus
-  permisos antes de otorgar accesos.
-- Implementar los procedimientos almacenados parametrizados (altas, consultas,
-  entradas y salidas) con transacciones y control de concurrencia por
-  producto.
-- Implementar repositorios, servicios y endpoints respetando
-  `main.py → apis → services → repositories`, el contrato camelCase y las
-  fechas `YYYY-MM-DD`.
-
-## Etapa 7 — Consultas mediante procedimientos almacenados
-
-`10_procedures_read.sql` define los siguientes procedimientos, **preparados pero
-todavía no ejecutados en SQL Server**:
-
-| Procedimiento | Repositorio Python | Respuesta del contrato Angular |
-| --- | --- | --- |
-| `dbo.usp_ListarProductos` | `list_products()` | `Product[]` |
-| `dbo.usp_ListarCategorias` | `list_categories()` | `Category[]` |
-| `dbo.usp_ListarLotes` | `list_lots()` | `Lot[]` |
-| `dbo.usp_ListarAreas` | `list_areas()` | `HospitalArea[]` |
-| `dbo.usp_ListarMovimientos` | `list_movements()` | `Movement[]` |
-
-El módulo `src/backend/repositories/inventory_read.py` ejecuta **solo EXEC**
-sobre esos procedimientos mediante `Database.connection()`. No abre conexiones
-al importar el módulo. Los resultados se validan con los schemas Pydantic y
-pueden serializarse a camelCase para Angular.
-
-Importante: no se ha creado ni instalado ningún procedimiento en tu instancia
-local. Las pruebas de esta etapa usan cursores simulados; **no son evidencia de
-lectura real de SQL Server**. La creación de la base y la asignación de permisos
-SQL para la cuenta de aplicación siguen pendientes.
-
-Los procedimientos de escritura de las etapas 9 y 10 ya están redactados, pero
-aún no se instalaron. La idempotencia de `POST /movements` sigue pendiente.
-
-## Etapa 9 — Altas y actualización del catálogo
-
-`11_procedures_catalog_write.sql` agrega cuatro procedimientos parametrizados:
-`usp_CrearCategoria`, `usp_CrearProducto`, `usp_ActualizarProducto` y
-`usp_CambiarEstadoProducto`. Debe instalarse **después de** `01_create_tables.sql`
-mediante SSMS o sqlcmd; este archivo **todavía no se ha ejecutado**.
-
-Las escrituras se realizan únicamente con `EXEC` desde
-`repositories/inventory_write.py`, usando `Database.transaction()` para
-confirmar o revertir las operaciones. Los errores de dominio se devuelven
-como 404, 409 o 422 y los del controlador ODBC se ocultan en un 503 seguro.
-Los procedimientos protegen unicidad de categorías/códigos, existencia de una
-categoría activa, preservación del estado de un producto durante PUT e
-inmutabilidad de unidad y control de vencimiento si existen movimientos.
-
-**Importante:** `12_procedures_movements.sql` adquiere `UPDLOCK, HOLDLOCK`
-sobre `dbo.Products` antes de actualizar lotes e insertar movimientos. Este
-mecanismo todavía requiere comprobación con conexiones SQL concurrentes reales.
-
-No se crean logins ni se conceden permisos; estos scripts no deben ejecutarse
-en `master`. Las pruebas automatizadas usan cursores simulados, no SQL Server.
-
-## Etapa 10 — Registro de entradas y salidas por lote
-
-`12_procedures_movements.sql` define `dbo.usp_RegistrarMovimiento`. El repositorio
-`repositories/inventory_movements.py` llama al SP con nueve parámetros
-posicionales; nunca ejecuta `INSERT` ni `UPDATE` desde Python. Los servicios
-validan las referencias UUID y la API expone `POST /api/movements` (201).
-
-El procedimiento mantiene en una transacción el saldo individual de `Lots`,
-el `stock_before` y `stock_after` del producto completo y el historial de
-`Movements`. Adquiere un bloqueo de actualización sobre la ficha `Products`
-antes de trabajar con lotes, para serializar operaciones del mismo producto;
-rechaza inventario negativo, lotes vencidos en salidas, áreas inexistentes y
-la reutilización de un lote con otra fecha de vencimiento. Controla el límite
-de `INT` y utiliza `BIGINT` para sumar existencias.
-
-**No instalado ni probado en SQL Server:** las pruebas actuales verifican el
-contrato HTTP, los repositorios con cursores simulados y propiedades estáticas
-del script; no demuestran aún la transacción ni su concurrencia en la base real.
-
-**Limitación por resolver antes de producción:** Angular no envía una clave
-de idempotencia. Si la petición se confirma en SQL Server pero se pierde la
-respuesta, un segundo POST puede duplicar el movimiento. Se requiere acordar
-con Hans un identificador por operación y añadir su persistencia/rechazo de
-duplicados en la siguiente integración; no se anuncia garantía de
-exactamente una vez.
-
-## Autenticación (etapa 11)
-
-`13_procedures_users.sql` implementa `usp_ObtenerUsuarioPorCorreo` y
-`usp_ObtenerUsuarioPorId`; ambos devuelven exclusivamente datos de la tabla
-`Users` que necesita el servicio de autenticación (incluido el hash Argon2id,
-solo para uso interno del backend). **No ejecuta los procedimientos ni crea
-cuentas por sí mismo.** Una instalación funcional requiere un usuario real
-registrado por un administrador y permisos `EXECUTE` para la cuenta SQL de la
-aplicación. Nunca guardar claves ni hashes de usuarios reales en el repositorio.
-
-## Comprobación optativa de instalación (etapa 13)
-
-Una vez instalada la base (sin ejecutar los scripts sobre `master` salvo el
-`00_create_database.sql`), el backend incluye la herramienta de diagnóstico
-`backend/scripts/check_sql_readiness.py` y pruebas de integración optativas.
-La herramienta lee solamente los metadatos de SQL Server, verifica las seis
-tablas, los doce procedimientos de `10` a `13`, restricciones críticas,
-relación compuesta lote-producto y permisos `EXECUTE`. **No crea ni modifica**
-usuarios, tablas o movimientos. `DB_NAME` debe apuntar a `HospitalSanGabriel`;
-el diagnóstico se niega a consultar `master`. Instrucciones en
-`backend/README.md`.
+Las contraseñas de aplicación van como hashes Argon2id en `dbo.Users`.
+La conexión desde FastAPI usa credenciales SQL guardadas **solo en el `.env`
+local**, nunca en estos archivos. No asignar al usuario de aplicación permisos
+más altos de los necesarios.

@@ -26,7 +26,7 @@
       - La FK compuesta (lot_id, product_id) impide asociar un movimiento a
         un lote de otro producto.
       - Este script no crea procedimientos almacenados; la lógica de
-        inventario y su concurrencia se implementarán en etapas posteriores.
+        inventario y su concurrencia están implementados en los procedimientos de movimientos.
 */
 
 USE [HospitalSanGabriel];

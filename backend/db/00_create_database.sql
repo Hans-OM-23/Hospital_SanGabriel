@@ -32,8 +32,9 @@ IF DB_ID(N'HospitalSanGabriel') IS NULL
 BEGIN
     PRINT N'Creando la base de datos HospitalSanGabriel...';
 
-    CREATE DATABASE [HospitalSanGabriel]
-        COLLATE Modern_Spanish_100_CI_AS;
+    -- CREATE DATABASE debe ejecutarse en un lote independiente; EXEC evita
+    -- el error de compilación dentro de un bloque IF.
+    EXEC(N'CREATE DATABASE [HospitalSanGabriel] COLLATE Modern_Spanish_100_CI_AS;');
 END
 ELSE
 BEGIN

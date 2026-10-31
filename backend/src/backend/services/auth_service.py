@@ -1,9 +1,8 @@
 """Servicio de autenticación: credenciales, contraseña y emisión de JWT.
 
 El servicio recibe un :class:`UserRepository` por inyección, de modo que la
-lógica puede probarse sin SQL Server. La implementación real del repositorio
-(ejecutando un procedimiento almacenado sobre ``dbo.Users``) y el endpoint
-``POST /api/auth/login`` quedan pendientes hasta que exista persistencia.
+lógica puede probarse sin SQL Server. El repositorio implementado consulta ``dbo.Users`` mediante procedimientos
+almacenados y la API expone ``POST /api/auth/login``.
 
 No hay usuarios, correos ni contraseñas fijas en este módulo. La contraseña
 solo se compara mediante Argon2id; el token se emite con HS256 y una clave

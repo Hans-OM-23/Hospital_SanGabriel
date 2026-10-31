@@ -1,7 +1,7 @@
 /*
     Hospital San Gabriel — etapa 9: escrituras de categorías y productos.
 
-    INSTALACIÓN PENDIENTE: requiere 00_create_database.sql y 01_create_tables.sql.
+    INSTRUCCIONES DE INSTALACIÓN: requiere 00_create_database.sql y 01_create_tables.sql.
     Se ejecuta con SSMS/sqlcmd, no con pyodbc (GO divide los lotes).
     El backend invoca únicamente estos procedimientos parametrizados.
     No crea cuentas, permisos ni datos de demostración.
@@ -15,7 +15,7 @@
       51016 seguimiento de vencimiento inmutable si existen movimientos
 
     Estas operaciones se serializan con UPDLOCK/HOLDLOCK sobre la ficha del
-    producto. Los futuros procedimientos de movimientos DEBEN bloquear la
+    producto. Los procedimientos de movimientos bloquean la
     misma fila de Products antes de modificar Lots o Movements.
 */
 USE [HospitalSanGabriel];

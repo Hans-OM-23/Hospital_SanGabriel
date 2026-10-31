@@ -1,7 +1,7 @@
 """Servicios de lectura del inventario, sin consultas SQL en la capa HTTP.
 
 Los métodos delegan a procedimientos almacenados a través del repositorio.
-Las reglas de escritura, stock y transacciones se implementarán en otras etapas.
+Las escrituras, el stock y las transacciones se gestionan en servicios y procedimientos independientes.
 """
 
 from __future__ import annotations
