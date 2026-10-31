@@ -23,7 +23,7 @@ Incluye:
 No incluye todavía:
 
 - Creación de logins, usuarios de base de datos o permisos.
-- Persistencia de usuarios para `POST /api/auth/login`.
+- Aprovisionamiento de usuarios y permisos administrativos (sin contraseñas versionadas).
 - Garantía de idempotencia para reintentos de movimientos tras una respuesta perdida.
 
 ## Archivos
@@ -38,7 +38,8 @@ No incluye todavía:
 | 6 | `10_procedures_read.sql` | Cinco procedimientos almacenados de consulta. No modifican datos. | **Pendiente de instalar** cuando se disponga de permisos SQL |
 | 7 | `11_procedures_catalog_write.sql` | Cuatro procedimientos de creación/actualización de categorías y productos. | **Pendiente de instalar** |
 | 8 | `12_procedures_movements.sql` | Procedimiento transaccional de entrada/salida por lote. | **Pendiente de instalar** |
-| 9 | `99_verify_schema.sql` | Verificación de solo lectura: tablas, FK, CHECK, índices, huérfanos y conciliación de saldos. | Verificación |
+| 9 | `13_procedures_users.sql` | Dos procedimientos de búsqueda de usuarios para el login con Argon2id. | **Pendiente de instalar** |
+| 10 | `99_verify_schema.sql` | Verificación de solo lectura: tablas, FK, CHECK, índices, huérfanos y conciliación de saldos. | Verificación |
 
 ## Requisitos de permisos
 
@@ -80,6 +81,7 @@ sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/10_procedures_read.sql -b -f 65001
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/11_procedures_catalog_write.sql -b -f 65001
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/12_procedures_movements.sql -b -f 65001
+sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/13_procedures_users.sql -b -f 65001
 sqlcmd -S <servidor> -U <cuenta_administradora> -d HospitalSanGabriel -i backend/db/99_verify_schema.sql -b -f 65001
 ```
 
@@ -267,3 +269,13 @@ respuesta, un segundo POST puede duplicar el movimiento. Se requiere acordar
 con Hans un identificador por operación y añadir su persistencia/rechazo de
 duplicados en la siguiente integración; no se anuncia garantía de
 exactamente una vez.
+
+## Autenticación (etapa 11)
+
+`13_procedures_users.sql` implementa `usp_ObtenerUsuarioPorCorreo` y
+`usp_ObtenerUsuarioPorId`; ambos devuelven exclusivamente datos de la tabla
+`Users` que necesita el servicio de autenticación (incluido el hash Argon2id,
+solo para uso interno del backend). **No ejecuta los procedimientos ni crea
+cuentas por sí mismo.** Una instalación funcional requiere un usuario real
+registrado por un administrador y permisos `EXECUTE` para la cuenta SQL de la
+aplicación. Nunca guardar claves ni hashes de usuarios reales en el repositorio.

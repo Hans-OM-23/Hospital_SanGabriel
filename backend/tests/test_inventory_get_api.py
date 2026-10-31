@@ -203,7 +203,7 @@ def test_openapi_conserva_los_get_y_registra_escrituras_reales(setup) -> None:
             assert "post" in doc["paths"][route]
         else:
             assert "post" not in doc["paths"][route]
-    assert "/api/auth/login" not in doc["paths"]
+    assert "post" in doc["paths"]["/api/auth/login"]
     assert "BearerJWT" in doc["components"]["securitySchemes"]
 
 

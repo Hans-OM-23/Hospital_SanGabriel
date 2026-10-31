@@ -46,10 +46,25 @@ Configuración en `backend/.env` (ver `.env.example`). Genera la clave con:
 uv run python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-### Pendiente hasta implementar la persistencia
+### Autenticación implementada en la etapa 11
 
-- Procedimiento almacenado e implementación real de `UserRepository`.
-- Endpoint `POST /api/auth/login` y su router; no existe todavía.
+- `POST /api/auth/login` acepta `LoginRequest` y devuelve `AuthResponse` (`accessToken` + `user`).
+- `apis/auth_api.py` es público, independiente de los endpoints protegidos.
+- `services/auth_service.py` valida Argon2id y emite JWT únicamente si la cuenta está activa.
+- `repositories/users.py` implementa `SqlServerUserRepository`, que ejecuta solo
+  `dbo.usp_ObtenerUsuarioPorCorreo` y `dbo.usp_ObtenerUsuarioPorId` (archivo
+  `db/13_procedures_users.sql`) con parámetros ODBC; no accede a tablas directamente.
+- Devuelve 401 genérico para credenciales incorrectas, 503 ante fallos de SQL y
+  500 si falta la configuración JWT, sin revelar hashes, contraseñas o errores ODBC.
+- La respuesta exitosa incluye `Cache-Control: no-store`.
+- Las pruebas funcionan con repositorios falsos; no contienen cuentas ni claves reales.
+
+### Pendientes de integración real
+
+- Instalar la base `HospitalSanGabriel` y `db/13_procedures_users.sql`.
+- Aprovisionar al menos un usuario en `dbo.Users` con hash Argon2id generado
+  localmente y sin guardar la contraseña en Git. El proyecto no incluye cuentas
+  de demostración en producción.
 - Actualización del hash cuando cambien los parámetros de Argon2id.
 - Renovación o revocación de tokens.
 - Verificación de que un usuario no ha sido desactivado después de emitirle
@@ -83,7 +98,7 @@ procedimientos almacenados`. El servicio y la API no ejecutan SQL directo.
 base del hospital hasta que `HospitalSanGabriel` y el archivo
 `db/10_procedures_read.sql` estén instalados, y exista una cuenta de aplicación
 con permisos `EXECUTE`. Un token de prueba se usa solamente en tests; no hay
-usuarios ni inventarios falsos en producción. El endpoint de login sigue pendiente; la etapa 9 prepara las escrituras de catálogo.
+usuarios ni inventarios falsos en producción. El inicio de sesión se implementó en la etapa 11, pero depende de usuarios persistidos y procedimientos instalados.
 
 Las pruebas de las rutas inyectan un servicio aislado únicamente en los tests;
 para ejecutarlas desde `backend/`:
@@ -120,8 +135,8 @@ Python ni usuarios de demostración en producción.
 **Estado:** código y procedimientos preparados, **NO instalados ni probados
 contra SQL Server**. Las pruebas automatizadas usan dependencias/cursor
 simulados; la instalación SQL, permisos de la cuenta de aplicación y las
-pruebas de concurrencia reales siguen pendientes. El endpoint de login continúa pendiente; el registro de entradas/salidas
-ya está preparado en la etapa 10, pero no instalado en SQL Server.
+pruebas de concurrencia reales siguen pendientes. El inicio de sesión se incorporó en la etapa 11. El registro de entradas/salidas
+está preparado en la etapa 10, pero aún no instalado en SQL Server.
 
 
 ## Etapa 10 — Registrar movimientos
@@ -143,5 +158,5 @@ identificados de SQL Server responden 503 sin revelar el controlador.
 contra SQL Server. Las pruebas automatizadas usan servicios/cursores
 simulados. Falta probar transacciones concurrentes reales y resolver la
 idempotencia del POST cuando se pierde una respuesta (el frontend aún no envía
-una clave de operación). La autenticación por usuarios persistidos y
-`POST /api/auth/login` siguen pendientes.
+una clave de operación). La ruta `/api/auth/login` está implementada en la etapa 11, pero requiere
+instalar los procedimientos y crear usuarios reales.
