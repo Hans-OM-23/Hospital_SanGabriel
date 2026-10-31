@@ -6,6 +6,8 @@ La ampliación de paginación y búsqueda se desarrolla en `codex/paginacion-lis
 
 La mejora de selectores y confirmaciones se desarrolla en `codex/selectores-alertas`, a partir de la ampliación anterior. Se separan los controles compartidos con sus pruebas, la integración en las pantallas y la documentación.
 
+La corrección del mensaje del correo y los dos usuarios de demostración se desarrolla en `codex/usuarios-inicio-sesion`, conservando el único perfil de acceso y la integración anterior.
+
 ## Flujo para las siguientes funcionalidades
 
 1. Partir de la rama de integración actualizada y crear una rama con un nombre descriptivo, por ejemplo `codex/productos` o `codex/movimientos`.

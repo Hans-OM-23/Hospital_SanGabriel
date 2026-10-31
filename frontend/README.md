@@ -20,11 +20,12 @@ Abrir [http://localhost:4200](http://localhost:4200).
 
 Si Angular CLI no está disponible globalmente, `npx ng s` utiliza el CLI instalado en el proyecto.
 
-| Acceso de demostración | Valor                  |
-| ---------------------- | ---------------------- |
-| Correo                 | `almacen@sgabriel.pe`  |
-| Contraseña             | `SanGabriel2026!`      |
-| Perfil                 | Responsable de almacén |
+| Usuario de demostración | Correo                      |
+| ----------------------- | --------------------------- |
+| Hans Orellana           | `hans.orellana@sgabriel.pe` |
+| Jimmy Ricce             | `jimmy.ricce@sgabriel.pe`   |
+
+Ambos utilizan la contraseña `SanGabriel2026!` y el perfil **Responsable de almacén**. En el inicio de sesión puede elegirse cualquiera de los dos para completar sus credenciales y después pulsar **Ingresar al almacén**. Las sesiones del acceso de demostración anterior se descartan al recargar.
 
 La sesión de ejemplo se conserva en `sessionStorage`. Cerrar sesión elimina esa sesión, mientras que los cambios del inventario permanecen en el navegador.
 

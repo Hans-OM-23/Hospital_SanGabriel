@@ -41,7 +41,7 @@ Solicitud `POST /auth/login`:
 
 ```json
 {
-  "email": "almacen@sgabriel.pe",
+  "email": "hans.orellana@sgabriel.pe",
   "password": "contraseña"
 }
 ```
@@ -53,8 +53,8 @@ Respuesta:
   "accessToken": "token-emitido-por-el-backend",
   "user": {
     "id": "user-1",
-    "name": "María Torres",
-    "email": "almacen@sgabriel.pe",
+    "name": "Hans Orellana",
+    "email": "hans.orellana@sgabriel.pe",
     "role": "Responsable de almacén"
   }
 }
@@ -62,7 +62,7 @@ Respuesta:
 
 El rol admite exactamente ese valor en la interfaz actual. `AuthService` valida la estructura, guarda la sesión en `sessionStorage` y mantiene el token en memoria. Un 401 durante el inicio de sesión se presenta como credenciales incorrectas. Otros errores del inicio de sesión se presentan como fallo al contactar el servicio. No se han implementado renovación ni revocación remota del token: su ciclo de vida debe definirse antes de integrar la autenticación real.
 
-La cuenta y el token de demostración son exclusivos del modo local. El backend deberá administrar sus propias cuentas, contraseñas y permisos.
+Las dos cuentas de demostración (Hans Orellana y Jimmy Ricce) y su token son exclusivos del modo local. El backend deberá administrar sus propias cuentas, contraseñas y permisos.
 
 ## Modelos de inventario
 
