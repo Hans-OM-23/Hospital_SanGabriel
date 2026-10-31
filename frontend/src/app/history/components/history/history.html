@@ -1,0 +1,196 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">TRAZABILIDAD DEL INVENTARIO</p>
+    <h1 class="page-title">Historial de movimientos</h1>
+    <p class="page-subtitle">Cada entrada y salida, con el detalle que necesitas.</p>
+  </div>
+  <div class="header-actions">
+    <button
+      class="btn btn-secondary"
+      type="button"
+      (click)="refresh()"
+      [disabled]="inventory.loading()"
+    >
+      <app-icon name="refresh" />{{ inventory.loading() ? 'Actualizando…' : 'Actualizar' }}</button
+    ><a class="btn btn-primary" routerLink="/movimientos"
+      ><app-icon name="plus" /> Nuevo movimiento</a
+    >
+  </div>
+</header>
+@if (error()) {
+  <div class="notice notice-error" role="alert">{{ error() }}</div>
+}
+@if (refreshed()) {
+  <div class="notice notice-success" role="status">
+    El historial y las existencias están actualizados.
+  </div>
+}
+@if (selectedMovementId()) {
+  <div class="selected-notice">
+    <div>
+      <strong>Movimiento registrado</strong
+      ><span>Estás consultando el detalle de la operación seleccionada.</span>
+    </div>
+    <button class="btn btn-ghost" type="button" (click)="clearSelection()">
+      Ver todo el historial <app-icon name="arrow-right" />
+    </button>
+  </div>
+}
+
+<section class="panel filter-panel">
+  <div class="filter-heading">
+    <app-icon name="filter" />
+    <h2>Filtrar movimientos</h2>
+    <span class="muted">Combina los filtros para precisar tu consulta</span>
+  </div>
+  <form (submit)="applyFilters($event)" novalidate>
+    <div class="history-filters">
+      <div class="field product-filter">
+        <label class="field-label" for="history-product">Producto</label
+        ><select id="history-product" [formField]="filtersForm.productId">
+          <option value="">Todos los productos</option>
+          @for (product of inventory.products(); track product.id) {
+            <option [value]="product.id">
+              {{ product.code }} · {{ product.name }}{{ product.active ? '' : ' (inactivo)' }}
+            </option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="history-type">Tipo de movimiento</label
+        ><select id="history-type" [formField]="filtersForm.type">
+          <option value="">Todos los tipos</option>
+          <option value="entry">Entradas</option>
+          <option value="exit">Salidas</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="history-area">Área hospitalaria</label
+        ><select id="history-area" [formField]="filtersForm.areaId">
+          <option value="">Todas las áreas</option>
+          @for (area of inventory.areas(); track area.id) {
+            <option [value]="area.id">{{ area.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="history-from">Desde</label
+        ><input id="history-from" type="date" [formField]="filtersForm.from" /><app-field-errors
+          [field]="filtersForm.from()"
+        />
+      </div>
+      <div class="field">
+        <label class="field-label" for="history-to">Hasta</label
+        ><input id="history-to" type="date" [formField]="filtersForm.to" /><app-field-errors
+          [field]="filtersForm.to()"
+        />
+      </div>
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-ghost" type="button" (click)="resetFilters()">Limpiar filtros</button
+      ><button class="btn btn-primary" type="submit">
+        <app-icon name="search" /> Aplicar filtros
+      </button>
+    </div>
+  </form>
+</section>
+
+<div class="history-summary">
+  <span
+    ><strong>{{ filtered().length }}</strong> movimientos encontrados</span
+  >
+  <div>
+    <span class="count-dot entry-dot"></span>{{ entryCount() }} entradas<span
+      class="count-dot exit-dot"
+    ></span
+    >{{ exitCount() }} salidas
+  </div>
+</div>
+
+<section class="panel history-table">
+  @if (filtered().length) {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Producto</th>
+            <th>Movimiento</th>
+            <th>Cantidad</th>
+            <th>Motivo / destino</th>
+            <th>Lote / vencimiento</th>
+            <th>Saldo anterior</th>
+            <th>Saldo posterior</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (movement of filtered(); track movement.id) {
+            <tr [class.selected-row]="movement.id === selectedMovementId()">
+              <td class="date-cell">{{ movement.date | date: 'dd MMM yyyy' }}</td>
+              <td class="product-cell">
+                <strong>{{ inventory.productName(movement.productId) }}</strong
+                ><small>Ref. {{ movement.id.slice(-8) }}</small>
+              </td>
+              <td>
+                <span
+                  class="badge"
+                  [class.badge-green]="movement.type === 'entry'"
+                  [class.badge-amber]="movement.type === 'exit'"
+                  ><app-icon
+                    [name]="movement.type === 'entry' ? 'arrow-down-left' : 'arrow-up-right'"
+                  />{{ movement.type === 'entry' ? 'Entrada' : 'Salida' }}</span
+                >
+              </td>
+              <td>
+                <strong [class.entry-quantity]="movement.type === 'entry'"
+                  >{{ movement.type === 'entry' ? '+' : '−' }}{{ movement.quantity }}</strong
+                >
+              </td>
+              <td class="reason-cell">
+                <strong>{{ movement.reason }}</strong
+                ><small>{{ inventory.areaName(movement.areaId) }}</small>
+              </td>
+              <td class="lot-cell">
+                <strong>{{ movement.lotNumber }}</strong
+                ><small>{{
+                  movement.expirationDate
+                    ? (movement.expirationDate | date: 'dd/MM/yyyy')
+                    : 'Sin vencimiento'
+                }}</small>
+              </td>
+              <td class="balance-cell">{{ movement.stockBefore }}</td>
+              <td class="balance-cell">
+                <strong>{{ movement.stockAfter }}</strong>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <footer class="table-footer">
+      <span
+        >{{ filtered().length }} {{ filtered().length === 1 ? 'registro' : 'registros'
+        }}{{ hasFilters() ? ' para los filtros seleccionados' : ' en el historial' }}</span
+      ><span><app-icon name="shield" /> Trazabilidad por lote</span>
+    </footer>
+  } @else {
+    <div class="empty-state">
+      <app-icon name="history" />
+      <h2>No encontramos movimientos</h2>
+      <p>
+        {{
+          hasFilters() || selectedMovementId()
+            ? 'Prueba con otros filtros o consulta todo el historial.'
+            : 'Registra una entrada o salida para comenzar a construir el historial.'
+        }}
+      </p>
+      @if (hasFilters() || selectedMovementId()) {
+        <button class="btn btn-secondary" type="button" (click)="resetFilters()">
+          Mostrar todos
+        </button>
+      } @else {
+        <a class="btn btn-primary" routerLink="/movimientos">Registrar movimiento</a>
+      }
+    </div>
+  }
+</section>

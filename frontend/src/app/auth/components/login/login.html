@@ -1,0 +1,126 @@
+<main class="login-page">
+  <section class="brand-panel" aria-label="San Gabriel, gestión hospitalaria">
+    <a class="brand" href="/" aria-label="San Gabriel inicio">
+      <span class="brand-mark" aria-hidden="true">+</span>
+      <span>San Gabriel<small>HOSPITAL · ALMACÉN</small></span>
+    </a>
+    <div class="brand-content">
+      <span class="eyebrow"><span></span> CUIDAMOS LO QUE CUIDA</span>
+      <h1>
+        Todo en orden.<br />
+        Para cuidar mejor.
+      </h1>
+      <p>Una visión clara de cada insumo, cada lote y cada movimiento de nuestro hospital.</p>
+      <div class="benefits">
+        <div>
+          <span class="benefit-icon"><app-icon name="package" /></span
+          ><span
+            ><strong>Inventario bajo control</strong
+            ><small>Existencias y alertas en un solo lugar.</small></span
+          >
+        </div>
+        <div>
+          <span class="benefit-icon"><app-icon name="layers" /></span
+          ><span
+            ><strong>Cada lote, una historia</strong
+            ><small>Trazabilidad desde el ingreso hasta su destino.</small></span
+          >
+        </div>
+        <div>
+          <span class="benefit-icon"><app-icon name="shield" /></span
+          ><span
+            ><strong>Decisiones con confianza</strong
+            ><small>Información que acompaña el cuidado diario.</small></span
+          >
+        </div>
+      </div>
+    </div>
+    <div class="brand-footer"><span class="footer-line"></span> Al servicio de quienes cuidan.</div>
+    <span class="decorative-cross" aria-hidden="true">+</span>
+  </section>
+  <section class="form-panel" aria-labelledby="login-title">
+    <div class="form-top"><app-icon name="shield" /><span>Acceso al sistema de almacén</span></div>
+    <div class="login-card">
+      <div class="welcome-icon"><app-icon name="log-in" /></div>
+      <span class="eyebrow form-eyebrow">BIENVENIDO A SAN GABRIEL</span>
+      <h2 id="login-title">Inicia sesión</h2>
+      <p class="login-intro">Ingresa tus credenciales para continuar con la gestión del almacén.</p>
+      <form (submit)="signIn($event)" novalidate>
+        <div class="field">
+          <label class="field-label" for="login-email">Correo institucional</label>
+          <div class="input-wrap">
+            <app-icon name="mail" /><input
+              id="login-email"
+              type="email"
+              autocomplete="username"
+              placeholder="tu.nombre@sgabriel.pe"
+              [formField]="loginForm.email"
+              aria-describedby="login-email-errors"
+            />
+          </div>
+          <app-field-errors id="login-email-errors" [field]="loginForm.email()" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="login-password">Contraseña</label>
+          <div class="input-wrap">
+            <app-icon name="lock" /><input
+              id="login-password"
+              [type]="showPassword() ? 'text' : 'password'"
+              autocomplete="current-password"
+              placeholder="Ingresa tu contraseña"
+              [formField]="loginForm.password"
+              aria-describedby="login-password-errors"
+            /><button
+              class="password-toggle"
+              type="button"
+              (click)="showPassword.set(!showPassword())"
+              [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              [attr.aria-pressed]="showPassword()"
+            >
+              <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" />
+            </button>
+          </div>
+          <app-field-errors id="login-password-errors" [field]="loginForm.password()" />
+        </div>
+        @if (error()) {
+          <div class="notice notice-error login-error" role="alert">
+            <app-icon name="alert-circle" />{{ error() }}
+          </div>
+        }
+        <button
+          class="btn btn-primary submit-button"
+          type="submit"
+          [disabled]="loginForm().submitting()"
+        >
+          <span>{{ loginForm().submitting() ? 'Ingresando…' : 'Ingresar al almacén' }}</span
+          ><app-icon name="arrow-right" />
+        </button>
+      </form>
+      @if (isDemo) {
+        <aside class="demo-access" aria-label="Credenciales de demostración">
+          <div class="demo-heading">
+            <span class="demo-dot"></span><strong>Explora la demostración</strong>
+          </div>
+          <p>Un acceso de ejemplo para conocer el sistema.</p>
+          <dl>
+            <div>
+              <dt>Correo</dt>
+              <dd>almacen&#64;sgabriel.pe</dd>
+            </div>
+            <div>
+              <dt>Contraseña</dt>
+              <dd>SanGabriel2026!</dd>
+            </div>
+          </dl>
+          <button type="button" (click)="fillDemo()" [disabled]="loginForm().submitting()">
+            Usar acceso de demostración <app-icon name="arrow-up-right" />
+          </button>
+        </aside>
+      }
+      <p class="access-note"><app-icon name="shield" />Perfil: Responsable de almacén</p>
+    </div>
+    <footer class="form-footer">
+      Hospital San Gabriel <span>·</span> Gestión de inventario hospitalario
+    </footer>
+  </section>
+</main>
