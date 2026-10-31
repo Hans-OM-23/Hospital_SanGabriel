@@ -7,9 +7,10 @@ import { Icon } from '../../../shared/components/icon/icon';
 import { FieldErrors } from '../../../shared/components/field-errors/field-errors';
 import { isDate, offsetDate, today } from '../../../core/service/date-utils';
 import { AuthService } from '../../../auth/service/auth';
+import { DatePicker } from '../../../shared/components/date-picker/date-picker';
 
 @Component({
-  imports: [CurrencyPipe, DatePipe, RouterLink, FormField, Icon, FieldErrors],
+  imports: [CurrencyPipe, DatePipe, RouterLink, FormField, Icon, FieldErrors, DatePicker],
   selector: 'app-dashboard',
   styleUrl: './dashboard.scss',
   templateUrl: './dashboard.html',

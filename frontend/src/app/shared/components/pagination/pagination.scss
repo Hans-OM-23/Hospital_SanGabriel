@@ -25,14 +25,9 @@
   gap: 9px;
 }
 
-select {
-  min-height: 36px;
-  min-width: 61px;
-  padding: 6px 8px;
-  color: var(--ink);
-  background: var(--surface, white);
-  border: 1px solid var(--line);
-  border-radius: 6px;
+.page-size app-select-control {
+  width: 76px;
+  flex: 0 0 76px;
 }
 
 .navigation,

@@ -57,7 +57,15 @@ describe('ProductForm: registro y validaciones del catálogo', () => {
         movements: signal<{ productId: string }[]>([]),
         warningDays: 730,
       },
-      save: vi.fn().mockResolvedValue({ ...existing, id: 'p2' }),
+      save: vi.fn().mockResolvedValue({
+        ...existing,
+        ...valid,
+        id: 'p2',
+        code: 'MED-002',
+        name: 'Producto nuevo',
+        description: 'Descripción nueva',
+        expirationDate: null,
+      }),
     };
     params = new BehaviorSubject(convertToParamMap({}));
     await TestBed.configureTestingModule({
@@ -91,7 +99,7 @@ describe('ProductForm: registro y validaciones del catálogo', () => {
     expect(component.hasMovements()).toBe(true);
     expect(component.productForm.unit().disabled()).toBe(true);
     expect(component.productForm.tracksExpiration().disabled()).toBe(true);
-    expect(fixture.nativeElement.querySelectorAll('select')[1].disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('#product-unit').disabled).toBe(true);
     expect(fixture.nativeElement.querySelector('input[type="checkbox"]').disabled).toBe(true);
     expect(fixture.nativeElement.textContent).toContain(
       'La unidad de medida y el control de vencimiento no se pueden cambiar',
@@ -132,6 +140,7 @@ describe('ProductForm: registro y validaciones del catálogo', () => {
     await component.save(new Event('submit'));
     expect(service.save).not.toHaveBeenCalled();
     expect(component.productForm.unitPrice().touched()).toBe(true);
+    expect(component.successOpen()).toBe(false);
   });
 
   it('normaliza código y texto y registra sin existencias iniciales', async () => {
@@ -147,6 +156,8 @@ describe('ProductForm: registro y validaciones del catálogo', () => {
     );
     expect(component.saved()).toBe(true);
     expect(component.model().code).toBe('');
+    expect(component.successOpen()).toBe(true);
+    expect(component.savedProduct()?.name).toBe('Producto nuevo');
   });
 
   it('muestra junto al código el error de duplicado devuelto por el servicio', async () => {
@@ -159,12 +170,14 @@ describe('ProductForm: registro y validaciones del catálogo', () => {
         .some((error) => error.kind === 'server' && error.message?.includes('ya existe')),
     ).toBe(true);
     expect(component.saved()).toBe(false);
+    expect(component.successOpen()).toBe(false);
   });
 
   it('permite reintentar los mismos datos después de un error general del servicio', async () => {
     service.save.mockRejectedValueOnce(new ApiError('El servicio no está disponible.'));
     await component.save(new Event('submit'));
     expect(component.error()).toBe('El servicio no está disponible.');
+    expect(component.successOpen()).toBe(false);
     expect(component.productForm().invalid()).toBe(true);
     expect(component.model()).toEqual(valid);
     await component.save(new Event('submit'));
@@ -176,5 +189,55 @@ describe('ProductForm: registro y validaciones del catálogo', () => {
     );
     expect(component.saved()).toBe(true);
     expect(component.error()).toBe('');
+  });
+
+  it('espera la confirmación del servicio antes de abrir la alerta', async () => {
+    let resolveSave!: (product: Product) => void;
+    service.save.mockImplementationOnce(
+      () =>
+        new Promise<Product>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+    const pending = component.save(new Event('submit'));
+    expect(component.productForm().submitting()).toBe(true);
+    expect(component.successOpen()).toBe(false);
+    expect(component.saved()).toBe(false);
+    resolveSave({ ...existing, id: 'p2', code: 'MED-002', name: 'Producto nuevo' });
+    await pending;
+    fixture.detectChanges();
+    const dialog = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog).not.toBeNull();
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(dialog.textContent).toContain('Producto registrado');
+    expect(dialog.textContent).toContain('Producto nuevo');
+    expect(dialog.textContent).toContain('MED-002');
+    expect(document.body.style.overflow).toBe('hidden');
+    const continueButton = Array.from(dialog.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Seguir registrando'),
+    )!;
+    continueButton.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.style.overflow).not.toBe('hidden');
+    expect(component.model().code).toBe('');
+    expect(component.saved()).toBe(true);
+  });
+
+  it('conserva los datos al editar y cierra la confirmación mediante Escape', async () => {
+    params.next(convertToParamMap({ id: 'p1' }));
+    fixture.detectChanges();
+    component.model.update((model) => ({ ...model, name: 'Nombre corregido' }));
+    service.save.mockResolvedValueOnce({ ...existing, name: 'Nombre corregido' });
+    await component.save(new Event('submit'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain(
+      'Producto actualizado',
+    );
+    expect(component.model().name).toBe('Nombre corregido');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+    expect(component.successOpen()).toBe(false);
+    expect(component.model().name).toBe('Nombre corregido');
   });
 });

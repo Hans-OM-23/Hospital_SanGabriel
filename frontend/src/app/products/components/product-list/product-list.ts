@@ -9,10 +9,12 @@ import { explainError } from '../../../core/service/api-error';
 import { offsetDate, today } from '../../../core/service/date-utils';
 import { PaginationState } from '../../../shared/service/pagination-state';
 import { Pagination } from '../../../shared/components/pagination/pagination';
+import { SelectControl } from '../../../shared/components/select-control/select-control';
+import { SelectOption } from '../../../shared/interface/select-option';
 
 @Component({
   selector: 'app-product-list',
-  imports: [CurrencyPipe, DatePipe, RouterLink, FormField, Icon, Pagination],
+  imports: [CurrencyPipe, DatePipe, RouterLink, FormField, Icon, Pagination, SelectControl],
   templateUrl: './product-list.html',
   styleUrl: './product-list.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,6 +24,15 @@ export class ProductList {
   readonly today = today();
   readonly filtersModel = signal({ search: '', category: '', status: 'active' });
   readonly filters = form(this.filtersModel);
+  readonly categoryOptions = computed<SelectOption[]>(() => [
+    { value: '', label: 'Todas las categorías' },
+    ...this.service.categories().map((category) => ({ value: category.id, label: category.name })),
+  ]);
+  readonly statusOptions: SelectOption[] = [
+    { value: 'active', label: 'Activos', description: 'Disponibles para nuevos movimientos' },
+    { value: 'inactive', label: 'Inactivos', description: 'Conservan sus lotes e historial' },
+    { value: '', label: 'Todos los estados' },
+  ];
   readonly selectedId = signal<string | null>(null);
   readonly confirmId = signal<string | null>(null);
   readonly busy = signal(false);

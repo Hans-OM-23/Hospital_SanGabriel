@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormField, form, required, submit, validate } from '@angular/forms/signals';
@@ -7,6 +7,9 @@ import { explainError } from '../../../core/service/api-error';
 import { isDate, today } from '../../../core/service/date-utils';
 import { FieldErrors } from '../../../shared/components/field-errors/field-errors';
 import { Icon } from '../../../shared/components/icon/icon';
+import { SelectControl } from '../../../shared/components/select-control/select-control';
+import { DatePicker } from '../../../shared/components/date-picker/date-picker';
+import { SelectOption } from '../../../shared/interface/select-option';
 import { Movement, MovementInput, MovementType } from '../../interface/movement';
 import { MovementsService } from '../../service/movements';
 
@@ -23,7 +26,7 @@ interface MovementDraft {
 }
 
 @Component({
-  imports: [DatePipe, DecimalPipe, FormField, RouterLink, FieldErrors, Icon],
+  imports: [DecimalPipe, FormField, RouterLink, FieldErrors, Icon, SelectControl, DatePicker],
   selector: 'app-movement-form',
   styleUrl: './movement-form.scss',
   templateUrl: './movement-form.html',
@@ -58,6 +61,34 @@ export class MovementForm {
     return !!expiration && expiration < today();
   });
   readonly productStock = computed(() => this.inventory.stock(this.model().productId));
+  readonly productOptions = computed<SelectOption[]>(() =>
+    this.inventory.activeProducts().map((product) => ({
+      value: product.id,
+      label: product.name,
+      description: `${product.code} · ${this.inventory.stock(product.id)} ${product.unit.toLowerCase()}(s) disponibles`,
+    })),
+  );
+  readonly reasonOptions: SelectOption[] = this.service.entryReasons.map((reason) => ({
+    value: reason,
+    label: reason,
+  }));
+  readonly areaOptions = computed<SelectOption[]>(() =>
+    this.inventory.areas().map((area) => ({ value: area.id, label: area.name })),
+  );
+  readonly lotOptions = computed<SelectOption[]>(() =>
+    this.lots().map((lot) => {
+      const expired = !!lot.expirationDate && lot.expirationDate < today();
+      const expiration = lot.expirationDate
+        ? `Vence ${lot.expirationDate.split('-').reverse().join('/')}`
+        : 'Sin vencimiento';
+      return {
+        value: lot.id,
+        label: lot.number,
+        description: `${lot.stock} disponibles · ${expiration}${expired ? ' · Vencido, salida bloqueada' : ''}`,
+        disabled: expired || lot.stock <= 0,
+      };
+    }),
+  );
 
   readonly movementForm = form(this.model, (path) => {
     required(path.productId, { message: 'Selecciona un producto.' });

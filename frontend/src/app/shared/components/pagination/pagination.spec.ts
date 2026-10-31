@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Pagination } from './pagination';
+import { By } from '@angular/platform-browser';
+import { OverlayContainer } from '@angular/cdk/overlay';
+import { SelectControl } from '../select-control/select-control';
 
 describe('Pagination: navegación accesible y tamaño de página', () => {
   let fixture: ComponentFixture<Pagination>;
@@ -74,17 +77,24 @@ describe('Pagination: navegación accesible y tamaño de página', () => {
   it('ofrece 5, 10 y 20 registros y emite el tamaño elegido como número', async () => {
     const change = vi.fn();
     fixture.componentInstance.pageSizeChange.subscribe(change);
-    const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
-    expect(Array.from(select.options, (option) => option.value)).toEqual(['5', '10', '20']);
-    select.value = '10';
-    select.dispatchEvent(new Event('change'));
+    const select = fixture.debugElement.query(By.directive(SelectControl))
+      .componentInstance as SelectControl;
+    expect(select.options().map((option) => option.value)).toEqual(['5', '10', '20']);
+    (fixture.nativeElement.querySelector('[role="combobox"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement();
+    const option = Array.from(overlay.querySelectorAll('[role="option"]')).find(
+      (item) => item.textContent?.trim() === '10',
+    ) as HTMLElement;
+    option.click();
     await fixture.whenStable();
     expect(change.mock.calls).toEqual([[10]]);
 
     fixture.componentRef.setInput('pageSize', 10);
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(select.value).toBe('10');
+    expect(select.value()).toBe('10');
     expect(range()).toBe('Mostrando 1–10 de 12 productos');
     expect(change).toHaveBeenCalledTimes(1);
   });
@@ -95,7 +105,9 @@ describe('Pagination: navegación accesible y tamaño de página', () => {
     fixture.componentRef.setInput('pageSize', 20);
     fixture.detectChanges();
     await fixture.whenStable();
-    expect((fixture.nativeElement.querySelector('select') as HTMLSelectElement).value).toBe('20');
+    const select = fixture.debugElement.query(By.directive(SelectControl))
+      .componentInstance as SelectControl;
+    expect(select.value()).toBe('20');
     expect(change).not.toHaveBeenCalled();
   });
 

@@ -11,10 +11,11 @@ import {
 import { FormField, form } from '@angular/forms/signals';
 import { Icon } from '../icon/icon';
 import { PAGE_SIZES } from '../../service/pagination-state';
+import { SelectControl } from '../select-control/select-control';
 
 @Component({
   selector: 'app-pagination',
-  imports: [FormField, Icon],
+  imports: [FormField, Icon, SelectControl],
   templateUrl: './pagination.html',
   styleUrl: './pagination.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,6 +29,7 @@ export class Pagination {
   readonly pageChange = output<number>();
   readonly pageSizeChange = output<number>();
   readonly pageSizes = PAGE_SIZES;
+  readonly sizeOptions = PAGE_SIZES.map((size) => ({ value: String(size), label: String(size) }));
   readonly sizeModel = signal({ pageSize: '5' });
   readonly sizeForm = form(this.sizeModel);
   readonly total = computed(() => Math.max(0, Math.trunc(this.totalItems()) || 0));
@@ -76,8 +78,8 @@ export class Pagination {
     this.pageChange.emit(page);
   }
 
-  changePageSize(event: Event) {
-    const pageSize = Number((event.target as HTMLSelectElement).value);
+  changePageSize(value: string) {
+    const pageSize = Number(value);
     if (this.pageSizes.some((size) => size === pageSize) && pageSize !== this.pageSize())
       this.pageSizeChange.emit(pageSize);
   }

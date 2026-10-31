@@ -56,43 +56,49 @@
       </div>
       <div class="field product-filter">
         <label class="field-label" for="history-product">Producto</label
-        ><select id="history-product" [formField]="filtersForm.productId">
-          <option value="">Todos los productos</option>
-          @for (product of inventory.products(); track product.id) {
-            <option [value]="product.id">
-              {{ product.code }} · {{ product.name }}{{ product.active ? '' : ' (inactivo)' }}
-            </option>
-          }
-        </select>
+        ><app-select-control
+          inputId="history-product"
+          label="Producto"
+          placeholder="Todos los productos"
+          [formField]="filtersForm.productId"
+          [options]="productOptions()"
+        />
       </div>
       <div class="field">
         <label class="field-label" for="history-type">Tipo de movimiento</label
-        ><select id="history-type" [formField]="filtersForm.type">
-          <option value="">Todos los tipos</option>
-          <option value="entry">Entradas</option>
-          <option value="exit">Salidas</option>
-        </select>
+        ><app-select-control
+          inputId="history-type"
+          label="Tipo de movimiento"
+          [formField]="filtersForm.type"
+          [options]="typeOptions"
+          [searchable]="false"
+        />
       </div>
       <div class="field">
         <label class="field-label" for="history-area">Área hospitalaria</label
-        ><select id="history-area" [formField]="filtersForm.areaId">
-          <option value="">Todas las áreas</option>
-          @for (area of inventory.areas(); track area.id) {
-            <option [value]="area.id">{{ area.name }}</option>
-          }
-        </select>
+        ><app-select-control
+          inputId="history-area"
+          label="Área hospitalaria"
+          [formField]="filtersForm.areaId"
+          [options]="areaOptions()"
+        />
       </div>
       <div class="field">
         <label class="field-label" for="history-from">Desde</label
-        ><input id="history-from" type="date" [formField]="filtersForm.from" /><app-field-errors
-          [field]="filtersForm.from()"
-        />
+        ><app-date-picker
+          inputId="history-from"
+          label="Desde"
+          [formField]="filtersForm.from"
+        /><app-field-errors [field]="filtersForm.from()" />
       </div>
       <div class="field">
         <label class="field-label" for="history-to">Hasta</label
-        ><input id="history-to" type="date" [formField]="filtersForm.to" /><app-field-errors
-          [field]="filtersForm.to()"
-        />
+        ><app-date-picker
+          inputId="history-to"
+          label="Hasta"
+          [minDate]="model().from || undefined"
+          [formField]="filtersForm.to"
+        /><app-field-errors [field]="filtersForm.to()" />
       </div>
     </div>
     <div class="filter-actions">

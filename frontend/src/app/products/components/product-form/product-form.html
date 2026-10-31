@@ -24,12 +24,6 @@
         <span class="form-step"><app-icon name="package" /></span>
       </div>
       <div class="form-body">
-        @if (saved()) {
-          <div class="notice notice-success" role="status">
-            {{ isEdit() ? 'Producto actualizado.' : 'Producto registrado correctamente.' }}
-            <a routerLink="/productos">Ver productos</a>
-          </div>
-        }
         @if (error()) {
           <div class="notice notice-error" role="alert">{{ error() }}</div>
         }
@@ -68,27 +62,31 @@
             ></textarea
             ><app-field-errors [field]="productForm.description()"
           /></label>
-          <label class="field"
-            ><span class="field-label">Categoría <span>*</span></span
-            ><select [formField]="productForm.categoryId">
-              <option value="">Selecciona una categoría</option>
-              @for (category of categories(); track category.id) {
-                <option [value]="category.id">{{ category.name }}</option>
-              }</select
-            ><app-field-errors [field]="productForm.categoryId()" />
+          <div class="field">
+            <label class="field-label" for="product-category">Categoría <span>*</span></label>
+            <app-select-control
+              [formField]="productForm.categoryId"
+              [options]="categoryOptions()"
+              inputId="product-category"
+              label="Categoría"
+              placeholder="Selecciona una categoría"
+            />
+            <app-field-errors [field]="productForm.categoryId()" />
             @if (!categories().length) {
               <small>Crea una categoría antes de registrar productos.</small>
             }
-          </label>
-          <label class="field"
-            ><span class="field-label">Unidad de medida <span>*</span></span
-            ><select [formField]="productForm.unit">
-              <option value="">Selecciona una unidad</option>
-              @for (unit of units; track unit) {
-                <option [value]="unit">{{ unit }}</option>
-              }</select
-            ><app-field-errors [field]="productForm.unit()"
-          /></label>
+          </div>
+          <div class="field">
+            <label class="field-label" for="product-unit">Unidad de medida <span>*</span></label>
+            <app-select-control
+              [formField]="productForm.unit"
+              [options]="unitOptions"
+              inputId="product-unit"
+              label="Unidad de medida"
+              placeholder="Selecciona una unidad"
+            />
+            <app-field-errors [field]="productForm.unit()" />
+          </div>
           <label class="field"
             ><span class="field-label">Precio unitario <span>*</span></span
             ><span class="currency-control"
@@ -124,12 +122,19 @@
             ></label
           >
           @if (model().tracksExpiration) {
-            <label class="field expiration-field"
-              ><span class="field-label">Fecha de vencimiento de referencia <span>*</span></span
-              ><input type="date" [formField]="productForm.expirationDate" /><app-field-errors
-                [field]="productForm.expirationDate()"
-              /><small>Cada entrada conservará la fecha real de su lote.</small></label
-            >
+            <div class="field expiration-field">
+              <label class="field-label" for="product-expiration"
+                >Fecha de vencimiento de referencia <span>*</span></label
+              >
+              <app-date-picker
+                [formField]="productForm.expirationDate"
+                inputId="product-expiration"
+                label="Fecha de vencimiento de referencia"
+              />
+              <app-field-errors [field]="productForm.expirationDate()" /><small
+                >Cada entrada conservará la fecha real de su lote.</small
+              >
+            </div>
           }
         </div>
       </div>
@@ -180,4 +185,18 @@
       </div>
     </aside>
   </div>
+}
+@if (successOpen()) {
+  <app-success-alert
+    [title]="savedWasEdit() ? 'Producto actualizado' : 'Producto registrado'"
+    [productName]="savedProduct()?.name ?? ''"
+    [productCode]="savedProduct()?.code ?? ''"
+    [message]="
+      savedWasEdit()
+        ? 'Los cambios del producto se guardaron correctamente.'
+        : 'La ficha del producto se guardó correctamente. Registra una entrada cuando recibas existencias.'
+    "
+    [continueLabel]="savedWasEdit() ? 'Entendido' : 'Seguir registrando'"
+    (closed)="closeSuccess()"
+  />
 }

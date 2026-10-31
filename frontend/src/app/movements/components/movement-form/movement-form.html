@@ -63,12 +63,13 @@
       <div class="form-grid">
         <div class="field span-two">
           <label class="field-label" for="movement-product">Producto *</label
-          ><select id="movement-product" [formField]="movementForm.productId">
-            <option value="">Selecciona un producto</option>
-            @for (item of inventory.activeProducts(); track item.id) {
-              <option [value]="item.id">{{ item.code }} · {{ item.name }}</option>
-            }</select
-          ><app-field-errors [field]="movementForm.productId()" />
+          ><app-select-control
+            inputId="movement-product"
+            label="Producto"
+            placeholder="Selecciona un producto"
+            [formField]="movementForm.productId"
+            [options]="productOptions()"
+          /><app-field-errors [field]="movementForm.productId()" />
         </div>
         <div class="field">
           <label class="field-label" for="movement-quantity">Cantidad *</label
@@ -82,22 +83,24 @@
         </div>
         <div class="field">
           <label class="field-label" for="movement-date">Fecha del movimiento *</label
-          ><input
-            id="movement-date"
-            type="date"
-            [max]="currentDate"
+          ><app-date-picker
+            inputId="movement-date"
+            label="Fecha del movimiento"
+            [maxDate]="currentDate"
             [formField]="movementForm.date"
           /><app-field-errors [field]="movementForm.date()" />
         </div>
         @if (isEntry()) {
           <div class="field">
             <label class="field-label" for="movement-reason">Motivo de ingreso *</label
-            ><select id="movement-reason" [formField]="movementForm.reason">
-              <option value="">Selecciona un motivo</option>
-              @for (reason of service.entryReasons; track reason) {
-                <option [value]="reason">{{ reason }}</option>
-              }</select
-            ><app-field-errors [field]="movementForm.reason()" />
+            ><app-select-control
+              inputId="movement-reason"
+              label="Motivo de ingreso"
+              placeholder="Selecciona un motivo"
+              [formField]="movementForm.reason"
+              [options]="reasonOptions"
+              [searchable]="false"
+            /><app-field-errors [field]="movementForm.reason()" />
           </div>
           <div class="field">
             <label class="field-label" for="movement-lot-number">Número de lote *</label
@@ -111,9 +114,10 @@
           @if (product()?.tracksExpiration) {
             <div class="field">
               <label class="field-label" for="movement-expiration">Vencimiento del lote *</label
-              ><input
-                id="movement-expiration"
-                type="date"
+              ><app-date-picker
+                inputId="movement-expiration"
+                label="Vencimiento del lote"
+                [minDate]="model().date || undefined"
                 [formField]="movementForm.expirationDate"
               /><app-field-errors [field]="movementForm.expirationDate()" />
             </div>
@@ -121,29 +125,26 @@
         } @else {
           <div class="field span-two">
             <label class="field-label" for="movement-lot">Lote de salida *</label
-            ><select id="movement-lot" [formField]="movementForm.lotId">
-              <option value="">Selecciona un lote manualmente</option>
-              @for (lot of lots(); track lot.id) {
-                <option [value]="lot.id">
-                  {{ lot.number }} · {{ lot.stock }} disponibles ·
-                  {{
-                    lot.expirationDate
-                      ? 'Vence ' + (lot.expirationDate | date: 'dd/MM/yyyy')
-                      : 'Sin vencimiento'
-                  }}{{ lot.expirationDate && lot.expirationDate < currentDate ? ' · VENCIDO' : '' }}
-                </option>
-              }</select
-            ><small class="muted">Ordenados por vencimiento, del más cercano al más lejano.</small
+            ><app-select-control
+              inputId="movement-lot"
+              label="Lote de salida"
+              placeholder="Selecciona un lote manualmente"
+              [formField]="movementForm.lotId"
+              [options]="lotOptions()"
+            /><small class="muted"
+              >Ordenados por vencimiento. Los lotes vencidos o sin existencias no están
+              disponibles.</small
             ><app-field-errors [field]="movementForm.lotId()" />
           </div>
           <div class="field">
             <label class="field-label" for="movement-area">Área hospitalaria de destino *</label
-            ><select id="movement-area" [formField]="movementForm.areaId">
-              <option value="">Selecciona un área</option>
-              @for (area of inventory.areas(); track area.id) {
-                <option [value]="area.id">{{ area.name }}</option>
-              }</select
-            ><app-field-errors [field]="movementForm.areaId()" />
+            ><app-select-control
+              inputId="movement-area"
+              label="Área hospitalaria de destino"
+              placeholder="Selecciona un área"
+              [formField]="movementForm.areaId"
+              [options]="areaOptions()"
+            /><app-field-errors [field]="movementForm.areaId()" />
           </div>
           <div class="field">
             <label class="field-label" for="movement-reason">Motivo de salida *</label

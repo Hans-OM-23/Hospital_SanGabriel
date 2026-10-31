@@ -5,11 +5,14 @@
 
   <label class="page-size">
     <span>Registros por página</span>
-    <select [formField]="sizeForm.pageSize" (change)="changePageSize($event)">
-      @for (size of pageSizes; track size) {
-        <option [value]="size">{{ size }}</option>
-      }
-    </select>
+    <app-select-control
+      [formField]="sizeForm.pageSize"
+      [options]="sizeOptions"
+      label="Registros por página"
+      [searchable]="false"
+      [compact]="true"
+      (valueChange)="changePageSize($event)"
+    />
   </label>
 
   <nav class="navigation" [attr.aria-label]="'Paginación de ' + label()">

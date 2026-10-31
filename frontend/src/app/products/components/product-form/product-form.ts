@@ -18,9 +18,12 @@ import {
   validate,
 } from '@angular/forms/signals';
 import { ProductsService } from '../../service/products';
-import { ProductInput } from '../../interface/product';
+import { Product, ProductInput } from '../../interface/product';
 import { FieldErrors } from '../../../shared/components/field-errors/field-errors';
 import { Icon } from '../../../shared/components/icon/icon';
+import { SelectControl } from '../../../shared/components/select-control/select-control';
+import { DatePicker } from '../../../shared/components/date-picker/date-picker';
+import { SuccessAlert } from '../../../shared/components/success-alert/success-alert';
 import { explainError } from '../../../core/service/api-error';
 import { isDate } from '../../../core/service/date-utils';
 
@@ -50,7 +53,7 @@ const emptyProduct = (): ProductModel => ({
 
 @Component({
   selector: 'app-product-form',
-  imports: [RouterLink, FormField, FieldErrors, Icon],
+  imports: [RouterLink, FormField, FieldErrors, Icon, SelectControl, DatePicker, SuccessAlert],
   templateUrl: './product-form.html',
   styleUrl: './product-form.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -64,6 +67,9 @@ export class ProductForm {
   readonly model = signal<ProductModel>(emptyProduct());
   readonly error = signal('');
   readonly saved = signal(false);
+  readonly successOpen = signal(false);
+  readonly savedProduct = signal<Product | null>(null);
+  readonly savedWasEdit = signal(false);
   readonly units = [
     'Unidad',
     'Tableta',
@@ -79,6 +85,10 @@ export class ProductForm {
   readonly categories = computed(() =>
     this.service.categories().filter((category) => category.active),
   );
+  readonly categoryOptions = computed(() =>
+    this.categories().map((category) => ({ value: category.id, label: category.name })),
+  );
+  readonly unitOptions = this.units.map((unit) => ({ value: unit, label: unit }));
   readonly hasMovements = computed(
     () =>
       !!this.editId() &&
@@ -169,6 +179,7 @@ export class ProductForm {
         if (this.initializedId) {
           this.model.set(emptyProduct());
           this.saved.set(false);
+          this.successOpen.set(false);
           this.initializedId = undefined;
         }
         return;
@@ -178,6 +189,7 @@ export class ProductForm {
         this.model.set({ ...product, expirationDate: product.expirationDate ?? '' });
         this.initializedId = id;
         this.saved.set(false);
+        this.successOpen.set(false);
       }
     });
   }
@@ -188,6 +200,7 @@ export class ProductForm {
     this.productForm().reset(structuredClone(this.model()));
     this.error.set('');
     this.saved.set(false);
+    this.successOpen.set(false);
     await submit(this.productForm, async () => {
       const model = this.model();
       const input: ProductInput = {
@@ -198,8 +211,11 @@ export class ProductForm {
         expirationDate: model.tracksExpiration ? model.expirationDate : null,
       };
       try {
-        await this.service.save(input, this.editId());
+        const product = await this.service.save(input, this.editId());
+        this.savedProduct.set(product);
+        this.savedWasEdit.set(this.isEdit());
         this.saved.set(true);
+        this.successOpen.set(true);
         if (!this.editId()) {
           this.model.set(emptyProduct());
           this.productForm().reset();
@@ -213,5 +229,9 @@ export class ProductForm {
         return [{ fieldTree: this.productForm, kind: 'server', message: apiError.message }];
       }
     });
+  }
+
+  closeSuccess() {
+    this.successOpen.set(false);
   }
 }

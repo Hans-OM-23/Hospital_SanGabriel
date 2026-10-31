@@ -101,17 +101,18 @@
 <form class="period-filter" novalidate aria-label="Periodo de consulta">
   <label class="field"
     ><span class="field-label">Desde</span
-    ><input
-      type="date"
+    ><app-date-picker
       [formField]="filters.from"
-      aria-label="Fecha inicial de consulta" /><app-field-errors [field]="filters.from()" /></label
+      label="Fecha inicial de consulta"
+      [compact]="true" /><app-field-errors [field]="filters.from()" /></label
   ><span class="date-separator" aria-hidden="true">—</span
   ><label class="field"
     ><span class="field-label">Hasta</span
-    ><input
-      type="date"
+    ><app-date-picker
       [formField]="filters.to"
-      aria-label="Fecha final de consulta" /><app-field-errors [field]="filters.to()" /></label
+      [minDate]="filtersModel().from || undefined"
+      label="Fecha final de consulta"
+      [compact]="true" /><app-field-errors [field]="filters.to()" /></label
   ><span class="period-caption"
     ><span class="mini-dot green-dot"></span> Los resultados se actualizan al cambiar las
     fechas.</span

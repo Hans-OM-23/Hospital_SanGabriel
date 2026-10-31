@@ -10,6 +10,9 @@ import { FieldErrors } from '../../../shared/components/field-errors/field-error
 import { Icon } from '../../../shared/components/icon/icon';
 import { Pagination } from '../../../shared/components/pagination/pagination';
 import { PaginationState } from '../../../shared/service/pagination-state';
+import { SelectControl } from '../../../shared/components/select-control/select-control';
+import { DatePicker } from '../../../shared/components/date-picker/date-picker';
+import { SelectOption } from '../../../shared/interface/select-option';
 
 interface HistoryFilters {
   search: string;
@@ -34,7 +37,16 @@ const normalizeSearch = (value: string) =>
     .toLocaleLowerCase('es-PE');
 
 @Component({
-  imports: [DatePipe, FormField, RouterLink, FieldErrors, Icon, Pagination],
+  imports: [
+    DatePipe,
+    FormField,
+    RouterLink,
+    FieldErrors,
+    Icon,
+    Pagination,
+    SelectControl,
+    DatePicker,
+  ],
   selector: 'app-history',
   styleUrl: './history.scss',
   templateUrl: './history.html',
@@ -51,6 +63,23 @@ export class History {
   readonly refreshed = signal(false);
   readonly model = signal<HistoryFilters>(emptyFilters());
   readonly applied = signal<HistoryFilters>(emptyFilters());
+  readonly productOptions = computed<SelectOption[]>(() => [
+    { value: '', label: 'Todos los productos' },
+    ...this.inventory.products().map((product) => ({
+      value: product.id,
+      label: product.name,
+      description: `${product.code}${product.active ? '' : ' · Inactivo'}`,
+    })),
+  ]);
+  readonly typeOptions: SelectOption[] = [
+    { value: '', label: 'Todos los tipos' },
+    { value: 'entry', label: 'Entradas', description: 'Ingresos al almacén' },
+    { value: 'exit', label: 'Salidas', description: 'Distribución a las áreas hospitalarias' },
+  ];
+  readonly areaOptions = computed<SelectOption[]>(() => [
+    { value: '', label: 'Todas las áreas' },
+    ...this.inventory.areas().map((area) => ({ value: area.id, label: area.name })),
+  ]);
   readonly filtersForm = form(this.model, (path) => {
     validate(path.from, ({ value }) =>
       value() && !isDate(value())
