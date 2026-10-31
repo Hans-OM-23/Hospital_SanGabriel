@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.apis.error_handlers import register_error_handlers
 from backend.apis.health_api import router as health_router
 from backend.apis.router import api_router
 from backend.core.config import get_settings
@@ -43,6 +44,8 @@ def create_app() -> FastAPI:
         if error.field:
             detail = {"field": error.field, "message": str(error)}
         return JSONResponse(status_code=error.status_code, content={"detail": detail})
+
+    register_error_handlers(app)
 
     app.include_router(health_router)
     app.include_router(api_router)

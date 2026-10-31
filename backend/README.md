@@ -160,3 +160,39 @@ simulados. Falta probar transacciones concurrentes reales y resolver la
 idempotencia del POST cuando se pierde una respuesta (el frontend aún no envía
 una clave de operación). La ruta `/api/auth/login` está implementada en la etapa 11, pero requiere
 instalar los procedimientos y crear usuarios reales.
+
+## Etapa 12 — Contrato HTTP y errores de validación seguros
+
+Se añade `apis/error_handlers.py` y su registro en `main.py`, sin alterar
+las rutas existentes ni el contrato JSON del frontend.
+
+- Los errores de entrada HTTP 422 devuelven `detail` como lista de objetos
+  `{ "loc": ["body", "campoCamelCase"], "msg": "...", "type": "..." }`.
+  Mantienen los alias `camelCase` para que `explainError` de Angular identifique
+  el campo correspondiente.
+- **Nunca se devuelven** `input`, `ctx`, `url` ni valores enviados por el usuario
+  dentro de los errores de validación. Esto es especialmente importante para
+  no devolver contraseñas introducidas incorrectamente en `/api/auth/login`.
+  Los mensajes genéricos se proporcionan en español sin interpolar entradas.
+- Se limita a 30 el número de errores de validación públicos por petición.
+- Los errores 404 (ruta inexistente) y 405 (método no permitido) mantienen
+  `detail` con mensajes en español; en 405 se conserva el encabezado `Allow`.
+- Los errores de `POST /api/auth/login` gestionados por los nuevos handlers
+  llevan `Cache-Control: no-store` y `Pragma: no-cache`.
+- Se conservan los estados y formatos anteriores para 401 (token ausente o
+  inválido), 403 (rol no autorizado), 404/409/422 de negocio y 503 (BD no
+  disponible), sin mostrar mensajes técnicos de `pyodbc`.
+- Las pruebas `tests/test_http_error_contract.py` comprueban los **11
+  métodos y rutas** de `frontend/docs/API-CONTRACT.md`, JWT de inventario,
+  errores sin filtraciones, CORS y compatibilidad de los campos con Angular.
+
+**Limitación:** las pruebas de la etapa 12 se ejecutan sin SQL Server mediante
+sustitución de dependencias. Los procedimientos SQL todavía deben instalarse y
+verificarse contra la base real. No se modifica el frontend, `.env`, ni la
+configuración de puertos.
+
+Desde `backend/`:
+
+```powershell
+uv run pytest -q
+```
