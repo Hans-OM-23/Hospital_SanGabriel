@@ -1,0 +1,363 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">{{
+      isQuery ? 'INFORMACIÓN PARA DECIDIR' : 'UN NUEVO DÍA PARA CUIDAR'
+    }}</span>
+    <h1 class="page-title">
+      {{ isQuery ? 'Consultas e indicadores' : 'Tu almacén, bajo control.' }}
+    </h1>
+    <p class="page-subtitle">
+      {{
+        isQuery
+          ? 'Explora los movimientos y las necesidades de tu inventario.'
+          : 'Hola, ' +
+            (auth.user()?.name?.split(' ')?.[0] || '') +
+            '. Este es el estado de tu inventario hospitalario.'
+      }}
+    </p>
+  </div>
+  <a class="btn btn-primary" routerLink="/movimientos" [queryParams]="{ tipo: 'entry' }"
+    ><app-icon name="plus" /> Registrar entrada</a
+  >
+</section>
+<div class="overview-heading">
+  <div>
+    <span class="section-dot"></span> Resumen del inventario <span class="live-label">AL DÍA</span>
+  </div>
+  <span><app-icon name="calendar" /> {{ now | date: 'd MMMM, y' }}</span>
+</div>
+<section class="metrics" aria-label="Indicadores actuales">
+  <article class="metric">
+    <div class="metric-top">
+      <span>Productos activos</span
+      ><span class="metric-icon green"><app-icon name="package" /></span>
+    </div>
+    <strong>{{ inventory.activeProducts().length.toString().padStart(2, '0') }}</strong>
+    <p><span class="mini-dot green-dot"></span> Disponibles en tu catálogo</p>
+  </article>
+  <article class="metric">
+    <div class="metric-top">
+      <span>Stock bajo</span><span class="metric-icon amber"><app-icon name="layers" /></span>
+    </div>
+    <strong>{{ inventory.lowStock().length.toString().padStart(2, '0') }}</strong>
+    <p><span class="mini-dot amber-dot"></span> En o por debajo del mínimo</p>
+  </article>
+  <article class="metric">
+    <div class="metric-top">
+      <span>Próximos a vencer</span
+      ><span class="metric-icon orange"><app-icon name="clock" /></span>
+    </div>
+    <strong>{{ inventory.expiring().length.toString().padStart(2, '0') }}</strong>
+    <p><span class="mini-dot orange-dot"></span> Dentro de los próximos 730 días</p>
+  </article>
+  <article class="metric value-metric">
+    <div class="metric-top">
+      <span>Valor del inventario</span
+      ><span class="metric-icon soft"><app-icon name="chart" /></span>
+    </div>
+    <strong>{{ inventory.inventoryValue() | currency: 'PEN' : 'S/ ' : '1.2-2' }}</strong>
+    <p>Valor referencial · productos activos</p>
+  </article>
+</section>
+@if (inventory.expired().length) {
+  <div class="expiration-banner">
+    <span class="expiration-icon"><app-icon name="alert" /></span>
+    <div>
+      <strong
+        >{{ inventory.expired().length }}
+        {{
+          inventory.expired().length === 1
+            ? 'producto vencido requiere'
+            : 'productos vencidos requieren'
+        }}
+        tu atención</strong
+      >
+      <p>Los lotes vencidos están bloqueados para salidas de uso hospitalario.</p>
+    </div>
+    <a routerLink="/productos" class="banner-link"
+      >Revisar inventario <app-icon name="arrow-right"
+    /></a>
+  </div>
+} @else {
+  <div class="healthy-banner">
+    <app-icon name="shield" /><span
+      >No hay productos vencidos con existencias. Tu inventario está al día.</span
+    >
+  </div>
+}
+<div class="period-heading">
+  <div>
+    <span class="eyebrow">UNA MIRADA A TU ACTIVIDAD</span>
+    <h2>Movimientos del periodo</h2>
+  </div>
+  <button
+    class="btn btn-secondary compact-button"
+    (click)="refresh()"
+    [disabled]="inventory.loading()"
+  >
+    <app-icon name="refresh" /> Actualizar
+  </button>
+</div>
+<form class="period-filter" novalidate aria-label="Periodo de consulta">
+  <label class="field"
+    ><span class="field-label">Desde</span
+    ><app-date-picker
+      [formField]="filters.from"
+      label="Fecha inicial de consulta"
+      [compact]="true" /><app-field-errors [field]="filters.from()" /></label
+  ><span class="date-separator" aria-hidden="true">—</span
+  ><label class="field"
+    ><span class="field-label">Hasta</span
+    ><app-date-picker
+      [formField]="filters.to"
+      [minDate]="filtersModel().from || undefined"
+      label="Fecha final de consulta"
+      [compact]="true" /><app-field-errors [field]="filters.to()" /></label
+  ><span class="period-caption"
+    ><span class="mini-dot green-dot"></span> Los resultados se actualizan al cambiar las
+    fechas.</span
+  >
+</form>
+@if (summary(); as data) {
+  <section class="activity-grid">
+    <article class="panel activity-panel">
+      <div class="panel-header">
+        <div>
+          <h2>Flujo de movimientos</h2>
+          <p>{{ data.movements }} operaciones registradas en el periodo</p>
+        </div>
+        <div class="chart-legend">
+          <span
+            ><i></i> Entradas <b>{{ data.entries }}</b></span
+          ><span
+            ><i></i> Salidas <b>{{ data.exits }}</b></span
+          >
+        </div>
+      </div>
+      <div
+        class="chart"
+        role="img"
+        [attr.aria-label]="data.entries + ' entradas y ' + data.exits + ' salidas en el periodo'"
+      >
+        <div class="chart-axis">
+          <span>{{ chartMax() }}</span
+          ><span>{{ chartMax() / 2 }}</span
+          ><span>0</span>
+        </div>
+        <div class="chart-bars">
+          @for (point of data.series; track point.date) {
+            <div class="chart-column">
+              <div class="bar-pair">
+                <div
+                  class="bar entry-bar"
+                  [style.height.%]="(point.entries / chartMax()) * 100"
+                  [title]="point.entries + ' entradas'"
+                ></div>
+                <div
+                  class="bar exit-bar"
+                  [style.height.%]="(point.exits / chartMax()) * 100"
+                  [title]="point.exits + ' salidas'"
+                ></div>
+              </div>
+              <span>{{ point.label }}</span>
+            </div>
+          }
+        </div>
+      </div>
+      <div class="chart-footnote">Número de operaciones · agrupadas por fecha</div>
+    </article>
+    <article class="panel ranking-panel">
+      <div class="panel-header">
+        <div>
+          <h2>Productos con más salidas</h2>
+          <p>Distribución hacia las áreas hospitalarias</p>
+        </div>
+        <app-icon name="arrow-up-right" />
+      </div>
+      <div class="ranking-content">
+        @for (product of data.ranking; track product.productId; let index = $index) {
+          <div class="rank-item">
+            <span class="rank-number">{{ index + 1 }}</span>
+            <div class="rank-body">
+              <div>
+                <strong>{{ product.name }}</strong
+                ><span
+                  >{{ product.quantity }} <small>{{ product.unit.toLowerCase() }}(s)</small></span
+                >
+              </div>
+              <div class="rank-track"><span [style.width.%]="product.percent"></span></div>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state">
+            <app-icon name="arrows" />
+            <p>Aún no hay salidas en este periodo.</p>
+            <a routerLink="/movimientos" [queryParams]="{ tipo: 'exit' }">Registrar una salida</a>
+          </div>
+        }
+        @if (data.ranking.length) {
+          <div class="ranking-note">
+            <app-icon name="info" /><span
+              >Cantidades expresadas en la unidad de cada producto.</span
+            >
+          </div>
+        }
+      </div>
+    </article>
+  </section>
+  <section class="panel movements-panel">
+    <div class="panel-header">
+      <div>
+        <h2>Últimos movimientos</h2>
+        <p>Trazabilidad en cada entrada y salida.</p>
+      </div>
+      <a
+        class="text-link"
+        routerLink="/historial"
+        [queryParams]="{ desde: filtersModel().from, hasta: filtersModel().to }"
+        >Ver historial <app-icon name="arrow-right"
+      /></a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Producto / lote</th>
+            <th>Movimiento</th>
+            <th>Cantidad</th>
+            <th>Destino</th>
+            <th>Fecha</th>
+            <th>Stock final</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (movement of latest(); track movement.id) {
+            <tr>
+              <td>
+                <div class="product-cell">
+                  <span class="product-symbol"><app-icon name="package" /></span>
+                  <div>
+                    <strong>{{ inventory.productName(movement.productId) }}</strong
+                    ><small>{{ movement.lotNumber }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="movement-type" [class.is-exit]="movement.type === 'exit'"
+                  ><app-icon
+                    [name]="movement.type === 'entry' ? 'arrow-down-left' : 'arrow-up-right'"
+                  />{{ movement.type === 'entry' ? 'Entrada' : 'Salida' }}</span
+                >
+              </td>
+              <td>
+                <strong>{{ movement.type === 'entry' ? '+' : '−' }}{{ movement.quantity }}</strong>
+              </td>
+              <td class="muted">{{ inventory.areaName(movement.areaId) }}</td>
+              <td class="muted">{{ movement.date | date: 'dd MMM, y' }}</td>
+              <td>
+                <strong>{{ movement.stockAfter }}</strong>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="empty-state">
+                No hay movimientos en las fechas seleccionadas.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span>Mostrando {{ latest().length }} de {{ data.movements }} movimientos</span
+      ><span>Todos los movimientos conservan su historial</span>
+    </div>
+  </section>
+} @else {
+  <div class="notice notice-error" role="alert">
+    Selecciona un rango de fechas válido para consultar los movimientos.
+  </div>
+}
+@if (isQuery) {
+  <section class="query-grid">
+    <article class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Existencias por reponer</h2>
+          <p>Stock actual igual o menor al mínimo</p>
+        </div>
+        <span class="badge badge-amber">{{ inventory.lowStock().length }} productos</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Disponible</th>
+              <th>Mínimo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (product of inventory.lowStock(); track product.id) {
+              <tr>
+                <td>
+                  <strong>{{ product.name }}</strong
+                  ><small>{{ product.unit }}</small>
+                </td>
+                <td>{{ inventory.stock(product.id) }}</td>
+                <td>{{ product.minStock }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="3" class="empty-state">No hay productos con stock bajo.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </article>
+    <article class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Control de vencimientos</h2>
+          <p>Alerta a 730 días · solo lotes con saldo</p>
+        </div>
+        <span class="badge badge-red">{{ inventory.expired().length }} vencidos</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Producto / lote</th>
+              <th>Vencimiento</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (lot of alertLots(); track lot.id) {
+              <tr>
+                <td>
+                  <strong>{{ inventory.productName(lot.productId) }}</strong
+                  ><small>{{ lot.number }} · {{ lot.stock }} disponibles</small>
+                </td>
+                <td>{{ lot.expirationDate | date: 'dd/MM/y' }}</td>
+                <td>
+                  <span
+                    class="badge"
+                    [class.badge-red]="lot.expirationDate! < currentDate"
+                    [class.badge-amber]="lot.expirationDate! >= currentDate"
+                    >{{ lot.expirationDate! < currentDate ? 'Vencido' : 'Próximo' }}</span
+                  >
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="3" class="empty-state">No hay lotes próximos a vencer ni vencidos.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+}

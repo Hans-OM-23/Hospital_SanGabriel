@@ -1,0 +1,158 @@
+<div
+  class="date-control"
+  [class.compact]="compact()"
+  [class.is-open]="open()"
+  [class.is-invalid]="invalid() && touched()"
+  [class.is-disabled]="disabled()"
+  cdkOverlayOrigin
+  #origin="cdkOverlayOrigin"
+  (focusout)="onFocusOut($event)"
+>
+  <app-icon name="calendar" class="leading-icon" aria-hidden="true" />
+  <input
+    #textbox
+    type="text"
+    inputmode="numeric"
+    autocomplete="off"
+    [id]="id()"
+    [value]="displayValue()"
+    [disabled]="disabled()"
+    [readOnly]="readonly()"
+    [required]="required()"
+    [attr.aria-label]="label()"
+    [attr.aria-invalid]="invalid() && touched() ? 'true' : null"
+    aria-haspopup="dialog"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="open() ? calendarId() : null"
+    placeholder="dd/mm/aaaa"
+    (input)="onInput($event)"
+    (keydown)="onInputKeydown($event)"
+  />
+  <button
+    type="button"
+    class="calendar-toggle"
+    [disabled]="disabled() || readonly()"
+    [attr.aria-label]="'Abrir calendario: ' + label()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="open() ? calendarId() : null"
+    (click)="toggleCalendar()"
+  >
+    <app-icon name="chevron-down" aria-hidden="true" />
+  </button>
+</div>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="open()"
+  [cdkConnectedOverlayPositions]="positions"
+  [cdkConnectedOverlayScrollStrategy]="scrollStrategy"
+  [cdkConnectedOverlayViewportMargin]="12"
+  [cdkConnectedOverlayPush]="true"
+  [cdkConnectedOverlayFlexibleDimensions]="false"
+  [cdkConnectedOverlayHasBackdrop]="true"
+  [cdkConnectedOverlayUsePopover]="null"
+  cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+  (backdropClick)="onBackdrop()"
+  (overlayKeydown)="onOverlayKeydown($event)"
+>
+  <section
+    class="calendar-panel"
+    role="dialog"
+    [id]="calendarId()"
+    [attr.aria-label]="'Elegir ' + label().toLocaleLowerCase('es-PE')"
+    (focusout)="onFocusOut($event)"
+  >
+    <div class="calendar-eyebrow"><span></span> Selecciona una fecha</div>
+    <header class="calendar-header">
+      <button
+        type="button"
+        class="month-arrow"
+        aria-label="Mes anterior"
+        (click)="navigateMonth(-1)"
+      >
+        <app-icon name="chevron-right" class="back-arrow" aria-hidden="true" />
+      </button>
+      <div class="month-year">
+        <div class="month-select-wrap">
+          <select aria-label="Mes" (change)="changeMonth($event)">
+            @for (month of months; track month; let index = $index) {
+              <option [value]="index" [selected]="viewDate().getMonth() === index">
+                {{ month }}
+              </option>
+            }
+          </select>
+          <app-icon name="chevron-down" aria-hidden="true" />
+        </div>
+        <input
+          class="year-input"
+          type="text"
+          inputmode="numeric"
+          maxlength="4"
+          aria-label="Año"
+          [value]="viewDate().getFullYear()"
+          (change)="changeYear($event)"
+          (keydown.enter)="$event.preventDefault(); changeYear($event)"
+        />
+      </div>
+      <button
+        type="button"
+        class="month-arrow"
+        aria-label="Mes siguiente"
+        (click)="navigateMonth(1)"
+      >
+        <app-icon name="chevron-right" aria-hidden="true" />
+      </button>
+    </header>
+    <span class="sr-only" aria-live="polite">{{ heading() }}</span>
+    <table class="calendar-grid" role="grid" [attr.aria-label]="heading()">
+      <thead>
+        <tr role="row">
+          @for (weekday of weekdays; track $index) {
+            <th role="columnheader" scope="col" [attr.aria-label]="weekdayNames[$index]">
+              {{ weekday }}
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (week of weeks(); track $index) {
+          <tr role="row">
+            @for (day of week; track day.iso) {
+              <td role="gridcell" [attr.aria-selected]="value() === day.iso">
+                <button
+                  type="button"
+                  class="day-button"
+                  [class.outside-month]="!day.inMonth"
+                  [class.selected]="value() === day.iso"
+                  [class.today]="todayISO() === day.iso"
+                  [disabled]="day.disabled"
+                  [attr.tabindex]="focusedDate() === day.iso && !day.disabled ? 0 : -1"
+                  [attr.data-date]="day.iso"
+                  [attr.aria-label]="day.label"
+                  [attr.aria-current]="todayISO() === day.iso ? 'date' : null"
+                  (click)="selectDate(day.iso)"
+                  (keydown)="onDayKeydown($event, day.iso)"
+                >
+                  {{ day.day }}
+                </button>
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+    <footer class="calendar-footer">
+      <button type="button" class="clear-button" (click)="clear()">Limpiar</button>
+      <button
+        type="button"
+        class="today-button"
+        [disabled]="todayDisabled()"
+        (click)="selectDate(todayISO())"
+      >
+        <span aria-hidden="true"></span> Hoy
+      </button>
+    </footer>
+    <p class="calendar-hint">También puedes escribir día / mes / año.</p>
+  </section>
+</ng-template>

@@ -1,0 +1,106 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">ORGANIZACIÓN DEL INVENTARIO</p>
+    <h1 class="page-title">Categorías</h1>
+    <p class="page-subtitle">Un catálogo ordenado para encontrar lo que necesitas.</p>
+  </div>
+  <span class="category-total"
+    ><app-icon name="layers" /> {{ service.categories().length }} categorías</span
+  >
+</div>
+@if (success()) {
+  <div class="notice notice-success" role="status">{{ success() }}</div>
+}
+<div class="category-layout">
+  <section class="panel category-panel">
+    <div class="panel-header">
+      <div>
+        <h2>Categorías disponibles</h2>
+        <p class="muted">Agrupa productos según su uso hospitalario.</p>
+      </div>
+    </div>
+    <div class="category-search">
+      <label class="field"
+        ><span class="field-label">Buscar categoría</span
+        ><span class="search-control"
+          ><app-icon name="search" /><input
+            type="search"
+            [formField]="filters.search"
+            placeholder="Nombre de la categoría" /></span
+      ></label>
+    </div>
+    <div class="category-items">
+      @for (category of pagination.items(); track category.id) {
+        <article class="category-item">
+          <span class="category-icon"><app-icon name="layers" /></span>
+          <div class="category-content">
+            <h3>{{ category.name }}</h3>
+            <p>{{ category.description || 'Categoría para organizar productos del hospital.' }}</p>
+            <span class="category-count"
+              >{{ service.productCount(category.id) }} productos asociados</span
+            >
+          </div>
+          <span
+            class="badge"
+            [class.badge-green]="category.active"
+            [class.badge-gray]="!category.active"
+            >{{ category.active ? 'Disponible' : 'Inactiva' }}</span
+          >
+        </article>
+      } @empty {
+        <div class="empty-state">
+          <app-icon name="search" />
+          <h3>No encontramos categorías</h3>
+          <p>Cambia la búsqueda o registra una categoría nueva.</p>
+        </div>
+      }
+    </div>
+    <app-pagination
+      [totalItems]="pagination.totalItems()"
+      [page]="pagination.page()"
+      [pageSize]="pagination.pageSize()"
+      label="categorías"
+      singularLabel="categoría"
+      (pageChange)="pagination.setPage($event)"
+      (pageSizeChange)="pagination.setPageSize($event)"
+    />
+  </section>
+  <form class="panel category-form" (submit)="save($event)" novalidate>
+    <div class="panel-header">
+      <div>
+        <span class="new-category-icon"><app-icon name="plus" /></span>
+        <h2>Nueva categoría</h2>
+        <p class="muted">Crea una nueva forma de organizar los productos.</p>
+      </div>
+    </div>
+    <div class="category-form-body">
+      @if (error()) {
+        <div class="notice notice-error" role="alert">{{ error() }}</div>
+      }
+      <label class="field"
+        ><span class="field-label">Nombre de la categoría <span>*</span></span
+        ><input
+          type="text"
+          [formField]="categoryForm.name"
+          placeholder="Ej. Material de laboratorio"
+          autocomplete="off" /><app-field-errors [field]="categoryForm.name()"
+      /></label>
+      <label class="field"
+        ><span class="field-label">Descripción <span class="optional">Opcional</span></span
+        ><textarea
+          [formField]="categoryForm.description"
+          rows="4"
+          placeholder="¿Qué tipo de productos agrupará?"
+        ></textarea
+        ><app-field-errors [field]="categoryForm.description()"
+      /></label>
+      <p class="category-help">
+        <app-icon name="info" /> La categoría estará disponible al crear o editar un producto.
+      </p>
+      <button type="submit" class="btn btn-primary" [disabled]="categoryForm().submitting()">
+        <app-icon name="plus" />
+        {{ categoryForm().submitting() ? 'Registrando…' : 'Registrar categoría' }}
+      </button>
+    </div>
+  </form>
+</div>

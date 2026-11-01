@@ -1,0 +1,41 @@
+<div class="success-backdrop">
+  <section
+    class="success-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="product-success-title"
+    aria-describedby="product-success-message product-success-detail"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+  >
+    <button
+      type="button"
+      class="dismiss-button"
+      aria-label="Cerrar confirmación"
+      (click)="dismiss()"
+    >
+      <app-icon name="close" />
+    </button>
+    <div class="success-emblem" aria-hidden="true"><app-icon name="check" /></div>
+    <p class="success-eyebrow">REGISTRO CONFIRMADO</p>
+    <h2 id="product-success-title">{{ title() }}</h2>
+    <p id="product-success-message" class="success-message">{{ message() }}</p>
+    <div id="product-success-detail" class="product-summary">
+      <span class="product-symbol" aria-hidden="true"><app-icon name="package" /></span>
+      <div>
+        <strong>{{ productName() }}</strong
+        ><span>{{ productCode() }}</span>
+      </div>
+      <span class="saved-badge"><app-icon name="check" /> Guardado</span>
+    </div>
+    <div class="success-actions">
+      <a routerLink="/productos" class="btn btn-primary" cdkFocusInitial>
+        Ver productos <app-icon name="arrow-right" />
+      </a>
+      <button type="button" class="btn btn-secondary" (click)="dismiss()">
+        {{ continueLabel() }}
+      </button>
+    </div>
+    <p class="success-note"><app-icon name="shield" /> Cada recurso, bajo control.</p>
+  </section>
+</div>

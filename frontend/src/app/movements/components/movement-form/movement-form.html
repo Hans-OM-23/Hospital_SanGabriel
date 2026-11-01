@@ -1,0 +1,221 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">CONTROL DEL ALMACÉN</p>
+    <h1 class="page-title">Movimientos</h1>
+    <p class="page-subtitle">Registra cada ingreso y distribución con trazabilidad por lote.</p>
+  </div>
+  <a class="btn btn-secondary" routerLink="/historial"><app-icon name="history" /> Ver historial</a>
+</header>
+
+@if (error()) {
+  <div class="notice notice-error" role="alert">{{ error() }}</div>
+}
+@if (success(); as result) {
+  <div class="notice notice-success" role="status">
+    <app-icon name="check" />
+    <div>
+      <strong>{{ result.type === 'entry' ? 'Entrada' : 'Salida' }} registrada correctamente</strong>
+      <p>
+        {{ inventory.productName(result.productId) }} · Lote {{ result.lotNumber }} · Stock:
+        {{ result.stockBefore }} → {{ result.stockAfter }}
+      </p>
+      <a routerLink="/historial" [queryParams]="{ movimiento: result.id }"
+        >Consultar movimiento generado →</a
+      >
+    </div>
+  </div>
+}
+
+<div class="movement-layout">
+  <section class="panel movement-panel">
+    <div class="movement-tabs" role="tablist" aria-label="Tipo de movimiento">
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="isEntry()"
+        [class.active]="isEntry()"
+        (click)="changeType('entry')"
+      >
+        <app-icon name="arrow-down-left" /> Registrar entrada
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="!isEntry()"
+        [class.active]="!isEntry()"
+        (click)="changeType('exit')"
+      >
+        <app-icon name="arrow-up-right" /> Registrar salida
+      </button>
+    </div>
+    <form (submit)="save($event)" novalidate>
+      <div class="form-intro">
+        <h2>{{ isEntry() ? 'Nueva entrada' : 'Nueva salida' }}</h2>
+        <p class="muted">
+          {{
+            isEntry()
+              ? 'Agrega existencias al almacén central.'
+              : 'Distribuye existencias a un área hospitalaria.'
+          }}
+          Los campos con * son obligatorios.
+        </p>
+      </div>
+      <div class="form-grid">
+        <div class="field span-two">
+          <label class="field-label" for="movement-product">Producto *</label
+          ><app-select-control
+            inputId="movement-product"
+            label="Producto"
+            placeholder="Selecciona un producto"
+            [formField]="movementForm.productId"
+            [options]="productOptions()"
+          /><app-field-errors [field]="movementForm.productId()" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="movement-quantity">Cantidad *</label
+          ><input
+            id="movement-quantity"
+            type="text"
+            inputmode="numeric"
+            placeholder="Ej. 10"
+            [formField]="movementForm.quantity"
+          /><app-field-errors [field]="movementForm.quantity()" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="movement-date">Fecha del movimiento *</label
+          ><app-date-picker
+            inputId="movement-date"
+            label="Fecha del movimiento"
+            [maxDate]="currentDate"
+            [formField]="movementForm.date"
+          /><app-field-errors [field]="movementForm.date()" />
+        </div>
+        @if (isEntry()) {
+          <div class="field">
+            <label class="field-label" for="movement-reason">Motivo de ingreso *</label
+            ><app-select-control
+              inputId="movement-reason"
+              label="Motivo de ingreso"
+              placeholder="Selecciona un motivo"
+              [formField]="movementForm.reason"
+              [options]="reasonOptions"
+              [searchable]="false"
+            /><app-field-errors [field]="movementForm.reason()" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="movement-lot-number">Número de lote *</label
+            ><input
+              id="movement-lot-number"
+              type="text"
+              placeholder="Ej. SG-2026-01"
+              [formField]="movementForm.lotNumber"
+            /><app-field-errors [field]="movementForm.lotNumber()" />
+          </div>
+          @if (product()?.tracksExpiration) {
+            <div class="field">
+              <label class="field-label" for="movement-expiration">Vencimiento del lote *</label
+              ><app-date-picker
+                inputId="movement-expiration"
+                label="Vencimiento del lote"
+                [minDate]="model().date || undefined"
+                [formField]="movementForm.expirationDate"
+              /><app-field-errors [field]="movementForm.expirationDate()" />
+            </div>
+          }
+        } @else {
+          <div class="field span-two">
+            <label class="field-label" for="movement-lot">Lote de salida *</label
+            ><app-select-control
+              inputId="movement-lot"
+              label="Lote de salida"
+              placeholder="Selecciona un lote manualmente"
+              [formField]="movementForm.lotId"
+              [options]="lotOptions()"
+            /><small class="muted"
+              >Ordenados por vencimiento. Los lotes vencidos o sin existencias no están
+              disponibles.</small
+            ><app-field-errors [field]="movementForm.lotId()" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="movement-area">Área hospitalaria de destino *</label
+            ><app-select-control
+              inputId="movement-area"
+              label="Área hospitalaria de destino"
+              placeholder="Selecciona un área"
+              [formField]="movementForm.areaId"
+              [options]="areaOptions()"
+            /><app-field-errors [field]="movementForm.areaId()" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="movement-reason">Motivo de salida *</label
+            ><input
+              id="movement-reason"
+              type="text"
+              placeholder="Ej. Atención de pacientes"
+              [formField]="movementForm.reason"
+            /><app-field-errors [field]="movementForm.reason()" />
+          </div>
+        }
+      </div>
+      @if (expiredLot() && !isEntry()) {
+        <div class="notice notice-error" role="alert">
+          El lote seleccionado está vencido. Selecciona un lote vigente para continuar.
+        </div>
+      }
+      <div class="form-actions">
+        <a class="btn btn-ghost" routerLink="/productos">Cancelar</a
+        ><button
+          class="btn btn-primary"
+          type="submit"
+          [disabled]="movementForm().submitting() || (expiredLot() && !isEntry())"
+        >
+          <app-icon name="check" />{{
+            movementForm().submitting()
+              ? 'Registrando…'
+              : isEntry()
+                ? 'Registrar entrada'
+                : 'Registrar salida'
+          }}
+        </button>
+      </div>
+    </form>
+  </section>
+  <aside class="stock-sidebar">
+    <section class="panel stock-card">
+      <div class="stock-card-icon"><app-icon name="package" /></div>
+      <p class="eyebrow">EXISTENCIAS ACTUALES</p>
+      @if (product(); as selectedProduct) {
+        <h2>{{ selectedProduct.name }}</h2>
+        <p class="muted">{{ selectedProduct.code }} · {{ selectedProduct.unit }}</p>
+        <div class="stock-value">
+          {{ productStock() | number }} <span>{{ selectedProduct.unit }}</span>
+        </div>
+        <div class="stock-detail">
+          <span>Stock mínimo</span><strong>{{ selectedProduct.minStock }}</strong>
+        </div>
+        @if (!isEntry()) {
+          <div class="stock-detail">
+            <span>Lote seleccionado</span
+            ><strong>{{ selectedLot()?.number || 'Sin seleccionar' }}</strong>
+          </div>
+          <div class="stock-detail">
+            <span>Disponible en lote</span><strong>{{ selectedLot()?.stock ?? '—' }}</strong>
+          </div>
+        }
+      } @else {
+        <h2>Selecciona un producto</h2>
+        <p class="muted">Consulta aquí el saldo disponible antes de registrar un movimiento.</p>
+      }
+    </section>
+    <section class="traceability-note">
+      <app-icon name="shield" />
+      <div>
+        <h3>Cada movimiento cuenta</h3>
+        <p>
+          El registro conserva el lote y los saldos anterior y posterior para consultar la
+          trazabilidad.
+        </p>
+      </div>
+    </section>
+  </aside>
+</div>

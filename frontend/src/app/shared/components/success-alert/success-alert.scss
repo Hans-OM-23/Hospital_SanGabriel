@@ -1,0 +1,212 @@
+:host {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+}
+.success-backdrop {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  overflow-y: auto;
+  background: #153d2d66;
+  backdrop-filter: blur(5px);
+  animation: backdrop-enter 180ms ease-out;
+}
+.success-card {
+  position: relative;
+  width: min(100%, 480px);
+  border: 1px solid #c9dfd1;
+  border-top: 4px solid var(--green);
+  border-radius: 20px;
+  padding: 36px 32px 24px;
+  background: linear-gradient(180deg, #f6fbf7 0, white 46%);
+  box-shadow: 0 22px 80px #102f2440;
+  text-align: center;
+  animation: card-enter 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dismiss-button {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  color: #6e8275;
+  background: transparent;
+  &:hover {
+    background: #e7f1e9;
+    color: var(--green);
+  }
+  app-icon {
+    width: 17px;
+    height: 17px;
+  }
+}
+.success-emblem {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 22px;
+  color: white;
+  border: 6px solid #e2f0e7;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 6px #eff7f1;
+  animation: emblem-enter 420ms ease-out;
+  app-icon {
+    width: 29px;
+    height: 29px;
+  }
+}
+.success-eyebrow {
+  color: var(--green);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.9px;
+  margin-bottom: 9px;
+}
+h2 {
+  margin: 0 0 12px;
+  color: #234d3a;
+  font-size: 25px;
+  letter-spacing: -0.7px;
+}
+.success-message {
+  margin: 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.product-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0;
+  padding: 16px;
+  border: 1px solid #e2ebe4;
+  border-radius: 11px;
+  background: #f8faf7;
+  text-align: left;
+  > div {
+    min-width: 0;
+    flex: 1;
+  }
+  strong {
+    display: block;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  div > span {
+    display: block;
+    margin-top: 2px;
+    color: #7a8b80;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+}
+.product-symbol {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #dce8df;
+  border-radius: 10px;
+  background: white;
+  color: #668d72;
+  app-icon {
+    width: 19px;
+    height: 19px;
+  }
+}
+.saved-badge {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  color: var(--green);
+  font-size: 10px;
+  white-space: nowrap;
+  app-icon {
+    width: 12px;
+    height: 12px;
+  }
+}
+.success-actions {
+  display: grid;
+  gap: 10px;
+  .btn {
+    width: 100%;
+    min-height: 43px;
+  }
+}
+.success-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 20px 0 0;
+  color: #8a9c8e;
+  font-size: 10px;
+  app-icon {
+    width: 13px;
+    height: 13px;
+  }
+}
+@keyframes backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes emblem-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (max-width: 480px) {
+  .success-backdrop {
+    padding: 16px;
+  }
+  .success-card {
+    padding: 32px 21px 22px;
+    border-radius: 16px;
+  }
+  h2 {
+    font-size: 23px;
+  }
+  .saved-badge {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .success-backdrop,
+  .success-card,
+  .success-emblem {
+    animation: none;
+  }
+}
