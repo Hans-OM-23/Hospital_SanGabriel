@@ -2,7 +2,9 @@
 
 El frontend completo y actualizado está integrado en la rama **`Hans`**, incluyendo paginación, selectores, calendarios, confirmación de productos y los accesos de Hans Orellana y Jimmy Ricce. Por decisión del usuario, el trabajo posterior continúa en `Hans` y no se crean más ramas salvo petición expresa.
 
-Las ramas locales `codex/*` se utilizaron para separar las funcionalidades durante el desarrollo. Todos sus commits se incorporaron a `Hans` antes de retirar esas ramas auxiliares. El historial se conserva y `main` permanece como la rama inicial del repositorio.
+Las ramas locales `codex/*` se utilizaron para separar las funcionalidades durante el desarrollo. Todos sus commits se incorporaron a `Hans` antes de retirar esas ramas auxiliares. El historial se conserva. `main` también se sincronizó con la entrega completa para que ambas ramas incluyan el frontend y sus archivos `.gitignore`; el trabajo continúa en `Hans`.
+
+El panel **Changes** de GitHub Desktop muestra cambios pendientes, no los archivos ya guardados de una rama. Las carpetas generadas por Angular permanecen en el disco al cambiar de rama; `.gitignore` evita incluirlas en los commits. Por ello, comprobar el proyecto en **History** o en el explorador de archivos es distinto de consultar **Changes**.
 
 ## Publicar desde GitHub Desktop
 
