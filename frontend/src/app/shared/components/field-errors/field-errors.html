@@ -1,7 +1,0 @@
-@if (field().touched() && field().invalid()) {
-  <div class="field-errors" role="alert">
-    @for (error of field().errors(); track $index) {
-      <span>{{ error.message || 'Revisa el dato ingresado.' }}</span>
-    }
-  </div>
-}
