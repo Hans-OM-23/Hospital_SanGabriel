@@ -39,7 +39,8 @@ def test_stock_por_lote_y_snapshots_totales():
 def test_contrato_lotes_vencimientos_y_salidas():
     sql = read_sql().upper()
     assert "@EXPIRATION_DATE < @MOVEMENT_DATE" in sql
-    assert "@EXPIRATION_DATE < CONVERT(DATE, SYSDATETIME())" in sql
+    assert "@EXPIRATION_DATE < @TODAY_PERU" in sql
+    assert "SWITCHOFFSET(SYSDATETIMEOFFSET(), '-05:00')" in sql
     assert "@EXISTING_EXPIRATION" in sql
     assert "@AREA_ID" in sql and "HOSPITALAREAS" in sql
     assert "LATIN1_GENERAL_BIN2" in sql

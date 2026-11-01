@@ -29,7 +29,8 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 GO
 
-DECLARE @hoy DATE = CAST(SYSDATETIME() AS DATE);
+-- Misma fecha operativa de Perú que valida FastAPI y el procedimiento.
+DECLARE @hoy DATE = CONVERT(DATE, SWITCHOFFSET(SYSDATETIMEOFFSET(), '-05:00'));
 
 DECLARE @cat_medicamentos UNIQUEIDENTIFIER =
     (SELECT category_id FROM dbo.Categories WHERE name = N'Medicamentos');

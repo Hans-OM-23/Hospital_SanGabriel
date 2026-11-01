@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
@@ -13,9 +13,10 @@ from backend.schemas.movement import (
     MovementCreate,
     MovementResponse,
     MovementType,
+    fecha_hoy_peru,
 )
 
-HOY = date.today()
+HOY = fecha_hoy_peru()
 AYER = HOY - timedelta(days=1)
 MANANA = HOY + timedelta(days=1)
 
@@ -273,3 +274,17 @@ def test_movimiento_respuesta_incluye_saldos_y_trazabilidad() -> None:
     assert cuerpo["type"] == "exit"
     assert cuerpo["date"] == "2026-10-31"
     assert cuerpo["stockAfter"] == 49
+
+
+def test_fecha_peru_antes_del_cambio_de_dia_utc() -> None:
+    # A las 02:30 UTC del 1 de noviembre sigue siendo 31 de octubre en Perú.
+    assert fecha_hoy_peru(datetime(2026, 11, 1, 2, 30, tzinfo=UTC)) == date(2026, 10, 31)
+
+
+def test_fecha_peru_despues_del_cambio_de_dia() -> None:
+    assert fecha_hoy_peru(datetime(2026, 11, 1, 5, 30, tzinfo=UTC)) == date(2026, 11, 1)
+
+
+def test_fecha_peru_exige_instante_con_zona() -> None:
+    with pytest.raises(ValueError):
+        fecha_hoy_peru(datetime(2026, 11, 1, 4, 30))

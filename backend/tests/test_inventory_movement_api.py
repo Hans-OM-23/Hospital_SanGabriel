@@ -1,7 +1,8 @@
 """Endpoint POST /api/movements: contrato JSON y autorización JWT."""
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import timedelta
+from backend.schemas.movement import fecha_hoy_peru
 from uuid import uuid4
 
 import pytest
@@ -130,7 +131,7 @@ def test_entrada_invalida_422_sin_servicio(setup, data, field):
 
 def test_fecha_futura_rechazada_sin_servicio(setup):
     client, fake = setup
-    future = (date.today() + timedelta(days=1)).isoformat()
+    future = (fecha_hoy_peru() + timedelta(days=1)).isoformat()
     response = client.post("/api/movements", headers=authorization(), json=entry(date=future))
     assert response.status_code == 422
     assert fake.calls == []

@@ -52,7 +52,9 @@ BEGIN
         THROW 51031, N'Selecciona un tipo de movimiento válido.', 1;
     IF @quantity IS NULL OR @quantity <= 0
         THROW 51033, N'La cantidad debe ser un entero mayor que cero.', 1;
-    IF @movement_date IS NULL OR @movement_date > CONVERT(DATE, SYSDATETIME())
+    -- Fecha del hospital en Perú (UTC-05), no la zona configurada en SQL Server.
+    DECLARE @today_peru DATE = CONVERT(DATE, SWITCHOFFSET(SYSDATETIMEOFFSET(), '-05:00'));
+    IF @movement_date IS NULL OR @movement_date > @today_peru
         THROW 51029, N'Selecciona una fecha válida que no sea futura.', 1;
 
     SET @reason = LTRIM(RTRIM(@reason));
@@ -147,7 +149,7 @@ BEGIN
             IF @lot_stock IS NULL
                 THROW 51022, N'Selecciona manualmente un lote del producto.', 1;
             IF @expiration_date IS NOT NULL
-               AND (@expiration_date < CONVERT(DATE, SYSDATETIME())
+               AND (@expiration_date < @today_peru
                     OR @expiration_date < @movement_date)
                 THROW 51024, N'El lote está vencido y no puede salir para uso hospitalario.', 1;
             IF @lot_stock < @quantity

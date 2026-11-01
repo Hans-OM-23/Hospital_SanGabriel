@@ -19,7 +19,7 @@ y cálculo de ``stockBefore`` / ``stockAfter``. El cliente nunca los envía.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime, timedelta, timezone
 from enum import StrEnum
 from typing import Any
 
@@ -37,6 +37,19 @@ from backend.schemas.common import (
 )
 
 ENTRY_REASONS: tuple[str, ...] = ("Compra", "Donación", "Devolución")
+
+# Perú mantiene UTC-05 durante todo el año, sin horario de verano. Usar la
+# zona horaria del hospital, no la del servidor, evita rechazar fechas de hoy
+# cuando FastAPI se ejecuta en otro país o en una máquina configurada en UTC.
+_PERU_TIMEZONE = timezone(timedelta(hours=-5))
+
+
+def fecha_hoy_peru(utc_now: datetime | None = None) -> date:
+    """Fecha de calendario del hospital, independiente del reloj local del servidor."""
+    ahora = utc_now if utc_now is not None else datetime.now(UTC)
+    if ahora.tzinfo is None:
+        raise ValueError("La fecha de referencia debe incluir zona horaria.")
+    return ahora.astimezone(_PERU_TIMEZONE).date()
 
 
 class MovementType(StrEnum):
@@ -124,7 +137,7 @@ class MovementCreate(ApiInput):
     @field_validator("date")
     @classmethod
     def _fecha_no_futura(cls, value: date) -> date:
-        if value > date.today():
+        if value > fecha_hoy_peru():
             raise PydanticCustomError(
                 "date_future",
                 "Ingresa una fecha válida que no sea futura.",

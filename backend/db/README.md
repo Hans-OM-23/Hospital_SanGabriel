@@ -4,6 +4,20 @@ Scripts de instalación reproducible para la base de datos hospitalaria. El
 modelo incluye **6 tablas**, claves GUID, relaciones, restricciones, índices,
 **12 procedimientos almacenados** y transacciones para entradas/salidas.
 
+## Instalación rápida para la exposición (un solo archivo)
+
+En una instancia **de pruebas** de SQL Server, abrir
+`INSTALAR_HOSPITAL_SAN_GABRIEL.sql` desde SSMS y ejecutar **F5 una vez**.
+El archivo integra los scripts en el orden correcto, crea una cuenta de
+**demostración** (`admin@hospital.com`, contraseña `HospitalDemo2026!`) si
+no existe y termina con las verificaciones. La cuenta es pública para la demo:
+**no usarla para información real ni publicar el sistema con esa contraseña**.
+El instalador se puede volver a ejecutar sin borrar el inventario existente;
+no restablece la contraseña de usuarios previamente creados.
+
+Para una instalación real, ejecutar los scripts individuales sin crear la
+cuenta compartida de demostración y usar credenciales propias.
+
 ## Orden exacto en SSMS
 
 Abrir **cada archivo completo** en SQL Server Management Studio y ejecutar
