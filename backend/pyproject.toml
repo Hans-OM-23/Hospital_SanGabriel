@@ -1,0 +1,35 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Jimmy Ricce Meza", email = "76828089@continental.edu.pe" }
+]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "argon2-cffi>=25.1.0",
+    "fastapi>=0.162.0",
+    "pydantic-settings>=2.16.2",
+    "pyjwt>=2.15.1",
+    "pyodbc>=5.3.0",
+    "uvicorn>=0.54.0",
+]
+
+[project.scripts]
+backend = "backend.main:run"
+
+[build-system]
+requires = ["uv_build>=0.10.9,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.16.0",
+    "pytest>=9.2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["integration: requiere SQL Server local y backend/.env"]

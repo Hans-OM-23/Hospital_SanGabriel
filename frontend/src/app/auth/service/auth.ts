@@ -7,6 +7,24 @@ import { DEMO_PASSWORD, DEMO_USERS } from './demo-users';
 
 const DEMO_TOKEN = 'san-gabriel-demo-session';
 
+/** Comprobación local de caducidad para la interfaz. La firma JWT la valida FastAPI. */
+function tokenExpired(token: string): boolean {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return true;
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as {
+      exp?: unknown;
+    };
+    return (
+      typeof decoded.exp !== 'number' ||
+      !Number.isFinite(decoded.exp) ||
+      decoded.exp * 1000 <= Date.now()
+    );
+  } catch {
+    return true;
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -52,7 +70,7 @@ export class AuthService {
         );
       }
     }
-    if (!this.isValidSession(response)) {
+    if (!this.isValidSession(response) || (!environment.useMock && tokenExpired(response.accessToken))) {
       throw new Error('El servicio devolvió una sesión incompleta. Contacta al administrador.');
     }
     this.accessToken.set(response.accessToken);
@@ -64,8 +82,18 @@ export class AuthService {
     }
   }
 
+  /** Descarta tokens vencidos antes de llamar a una ruta protegida. */
   token(): string | null {
-    return this.accessToken();
+    const current = this.accessToken();
+    if (current && !environment.useMock && tokenExpired(current)) {
+      this.logout();
+      return null;
+    }
+    return current;
+  }
+
+  hasValidSession(): boolean {
+    return this.token() !== null && this.user() !== null;
   }
 
   logout(): void {
@@ -85,7 +113,7 @@ export class AuthService {
       const session: unknown = JSON.parse(stored);
       if (
         this.isValidSession(session) &&
-        (!environment.useMock || this.isCurrentDemoSession(session))
+        (environment.useMock ? this.isCurrentDemoSession(session) : !tokenExpired(session.accessToken))
       ) {
         this.user.set(session.user);
         this.accessToken.set(session.accessToken);

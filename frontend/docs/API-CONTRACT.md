@@ -1,6 +1,10 @@
-# Contrato propuesto para la futura API FastAPI
+# Contrato Angular ↔ FastAPI (integración actual)
 
-Este documento describe las solicitudes que ya prepara el frontend. **El backend no está implementado en esta entrega y el adaptador HTTP está inactivo con `useMock: true`.** Las rutas, autorización y garantías de persistencia deben acordarse y probarse al desarrollar FastAPI.
+Este documento describe las rutas utilizadas por Angular con `useMock: false`.
+Los 11 endpoints están implementados en `../backend/` (desde la raíz del
+repositorio, `backend/`). Las validaciones y persistencia están en FastAPI y
+los procedimientos almacenados; las limitaciones de idempotencia y lectura
+simultánea se documentan más abajo.
 
 ## Convenciones
 
@@ -60,9 +64,10 @@ Respuesta:
 }
 ```
 
-El rol admite exactamente ese valor en la interfaz actual. `AuthService` valida la estructura, guarda la sesión en `sessionStorage` y mantiene el token en memoria. Un 401 durante el inicio de sesión se presenta como credenciales incorrectas. Otros errores del inicio de sesión se presentan como fallo al contactar el servicio. No se han implementado renovación ni revocación remota del token: su ciclo de vida debe definirse antes de integrar la autenticación real.
+El rol admite exactamente ese valor en la interfaz actual. `AuthService` valida la estructura, guarda la sesión en `sessionStorage` y mantiene el token en memoria. Un 401 durante el inicio de sesión se presenta como credenciales incorrectas. Otros errores del inicio de sesión se presentan como fallo al contactar el servicio. No hay renovación automática del JWT: un `401` de inventario limpia la
+sesión local y obliga a iniciar sesión nuevamente.
 
-Las dos cuentas de demostración (Hans Orellana y Jimmy Ricce) y su token son exclusivos del modo local. El backend deberá administrar sus propias cuentas, contraseñas y permisos.
+Las dos cuentas de demostración (Hans Orellana y Jimmy Ricce) y su token son exclusivos del modo local. En el modo real las cuentas se almacenan en SQL Server y FastAPI valida sus credenciales.
 
 ## Modelos de inventario
 
@@ -212,17 +217,19 @@ El normalizador `explainError` admite las formas siguientes en respuestas de err
 
 `field` y el último elemento de `loc` deben corresponder a nombres camelCase del modelo. La interfaz muestra el error de código duplicado junto a `code`, errores de nombre de categoría junto a `name` y errores de movimientos junto al campo cuando existe su correspondencia; los demás se presentan en un aviso del formulario. El inicio de sesión usa mensajes propios, según se explicó anteriormente.
 
-Se proponen 401 para ausencia o invalidez de autenticación, 403 para permisos insuficientes, 404 para recursos inexistentes, 409 para conflictos como códigos duplicados o saldo cambiado y 422 para datos inválidos. Son decisiones del contrato futuro; el adaptador actual no implementa por sí mismo esas garantías ni una recuperación automática de sesión ante un 401 de inventario.
+Se proponen 401 para ausencia o invalidez de autenticación, 403 para permisos insuficientes, 404 para recursos inexistentes, 409 para conflictos como códigos duplicados o saldo cambiado y 422 para datos inválidos. Los códigos 401, 404, 409 y 422 forman parte de la implementación real. Ante
+401 de inventario, el interceptor limpia la sesión. El backend se responsabiliza
+de las validaciones, además de las verificaciones del formulario.
 
 ## Consistencia, transacciones y refresco
 
-`HttpInventory.load()` ejecuta en paralelo cinco GET: productos, categorías, lotes, áreas y movimientos. `InventoryService.refresh()` reemplaza el estado visible cuando las cinco lecturas terminan correctamente. Si alguna falla, conserva el último estado válido y muestra un error.
+`HttpInventory.load()` ejecuta en paralelo cinco GET: productos, categorías, lotes, áreas y movimientos. `InventoryService.refresh()` utiliza solamente la respuesta de la recarga más reciente cuando hay solicitudes superpuestas; las respuestas antiguas se ignoran. Si alguna falla, conserva el último estado válido y muestra un error.
 
 Estas solicitudes paralelas no constituyen una transacción de lectura. El backend debe asegurar que sus respuestas describan un estado coherente o acordar una revisión común de datos. Una evolución recomendable es una lectura consolidada con versión/snapshot o lecturas ligadas a la misma revisión, adaptando el frontend cuando se decida.
 
 Después de guardar un producto, categoría, estado o movimiento, `InventoryService` vuelve a cargar los datos. Los listados e indicadores se derivan del nuevo estado. La confirmación exige que la mutación haya respondido correctamente. Si falla la lectura posterior, se mantiene esa confirmación y un aviso distingue el fallo de actualización: el usuario debe actualizar la consulta sin repetir el registro. Si se pierde la respuesta del POST, el resultado es incierto y la futura API deberá resolverlo mediante idempotencia y consulta de la operación.
 
-La futura operación `POST /movements` debe garantizar en una **misma transacción de SQL Server**:
+La operación actual `POST /movements` garantiza mediante su procedimiento almacenado una **misma transacción de SQL Server**:
 
 1. Validar usuario, producto, lote, vencimiento, cantidad y destino.
 2. Comprobar y modificar el saldo con control de concurrencia, evitando stock negativo.
@@ -244,4 +251,7 @@ Conviene acordar **idempotencia de las mutaciones**, especialmente de los movimi
 - Probar autorización, sesión inválida y perfil permitido en el servidor.
 - Comprobar el rango de 730 días, lotes vencidos y consistencia de los cinco recursos leídos.
 
-Estas son pruebas pendientes de la fase de integración; las pruebas de la demo no deben presentarse como evidencia de su ejecución contra una API o SQL Server.
+Las pruebas automatizadas con mocks no sustituyen las pruebas de SQL Server.
+En la instancia local ya se verificaron el login, las lecturas y operaciones
+de creación/edición y entrada/salida con los saldos resultantes. Una instalación
+nueva debe ensayarse en la máquina de evaluación.

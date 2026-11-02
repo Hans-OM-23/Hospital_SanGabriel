@@ -1,7 +1,7 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormField, form, required, submit, validate } from '@angular/forms/signals';
+import { FormField, form, maxLength, required, submit, validate } from '@angular/forms/signals';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { explainError } from '../../../core/service/api-error';
 import { isDate, today } from '../../../core/service/date-utils';
@@ -91,6 +91,8 @@ export class MovementForm {
   );
 
   readonly movementForm = form(this.model, (path) => {
+    maxLength(path.reason, 200, { message: 'El motivo admite hasta 200 caracteres.' });
+    maxLength(path.lotNumber, 50, { message: 'El número de lote admite hasta 50 caracteres.' });
     required(path.productId, { message: 'Selecciona un producto.' });
     validate(path.productId, ({ value }) =>
       value() && !this.inventory.activeProducts().some((p) => p.id === value())
@@ -100,7 +102,7 @@ export class MovementForm {
     required(path.quantity, { message: 'Ingresa una cantidad.' });
     validate(path.quantity, ({ value }) =>
       value() &&
-      (!/^\d+$/.test(value()) || Number(value()) <= 0 || !Number.isSafeInteger(Number(value())))
+      (!/^\d+$/.test(value()) || Number(value()) <= 0 || Number(value()) > 2147483647 || !Number.isSafeInteger(Number(value())))
         ? { kind: 'integer', message: 'La cantidad debe ser un número entero mayor que cero.' }
         : !this.isEntry() && this.selectedLot() && Number(value()) > this.selectedLot()!.stock
           ? {

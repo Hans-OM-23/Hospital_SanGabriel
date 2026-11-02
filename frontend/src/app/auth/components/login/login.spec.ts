@@ -50,24 +50,12 @@ describe('Login: validación y recuperación de errores', () => {
     );
   });
 
-  it.each([
-    ['Hans Orellana', 'hans.orellana@sgabriel.pe'],
-    ['Jimmy Ricce', 'jimmy.ricce@sgabriel.pe'],
-  ])('permite completar los datos de %s y enviarlos para iniciar sesión', async (name, email) => {
-    const buttons = Array.from(
-      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.demo-user'),
-    );
-    expect(buttons).toHaveLength(2);
-    const button = buttons.find(
-      (element) => element.getAttribute('aria-label') === `Usar acceso de ${name}`,
-    )!;
-    expect(button.textContent).toContain(email);
-    button.click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('#login-email').value).toBe(email);
-    expect(fixture.nativeElement.querySelector('#login-password').value).toBe(credentials.password);
+  it('no muestra usuarios ficticios al trabajar con SQL Server y envía el login real', async () => {
+    const buttons = fixture.nativeElement.querySelectorAll('.demo-user');
+    expect(buttons).toHaveLength(0);
+    component.credentials.set({ email: 'admin@hospital.com', password: 'clave-local' });
     await component.signIn(new Event('submit'));
-    expect(login).toHaveBeenCalledWith({ email, password: credentials.password });
+    expect(login).toHaveBeenCalledWith({ email: 'admin@hospital.com', password: 'clave-local' });
     expect(navigateByUrl).toHaveBeenCalledWith('/');
   });
 

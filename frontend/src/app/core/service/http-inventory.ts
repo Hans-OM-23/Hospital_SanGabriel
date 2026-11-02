@@ -7,7 +7,7 @@ import { Category, CategoryInput } from '../../categories/interface/category';
 import { HospitalArea, Movement, MovementInput } from '../../movements/interface/movement';
 import { environment } from '../../../environments/environment';
 
-/** Inactive in demo mode. These are proposed endpoint contracts for future FastAPI work. */
+/** Adaptador HTTP activo cuando useMock=false; coincide con las rutas FastAPI. */
 @Injectable({ providedIn: 'root' })
 export class HttpInventory extends InventoryGateway {
   private readonly http = inject(HttpClient);

@@ -1,10 +1,16 @@
-# Guía para explicar el frontend
+# Guía de sustentación — Hospital San Gabriel
 
 ## Qué se entrega
 
-Un frontend Angular 22.2.x para el almacén de Hospital San Gabriel, creado con Angular CLI mediante `ng new` y organizado por funcionalidades. Contiene acceso, productos, categorías, entradas, salidas, historial y consultas. Usa un ejemplo local pequeño para demostrar las pantallas y sus reglas.
+Sistema integrado Angular 22 + FastAPI + SQL Server para el inventario del
+Hospital San Gabriel, con acceso, productos, categorías, entradas, salidas,
+historial e indicadores. En la evaluación usar `useMock: false` y el SQL unificado
+de `backend/db/INSTALAR_HOSPITAL_SAN_GABRIEL.sql`.
 
-La API FastAPI está representada por interfaces y un adaptador HTTP inactivo. No se han implementado backend ni SQL Server y no debe afirmarse que existe una integración real. El [contrato propuesto](API-CONTRACT.md) permite desarrollar esa etapa después sin trasladar solicitudes HTTP a cada componente.
+El adaptador `HttpInventory` utiliza las rutas FastAPI del [contrato](API-CONTRACT.md).
+El backend separa APIs, servicios, repositorios y esquemas; los repositorios
+invocan procedimientos almacenados SQL. En la exposición hay que confirmar la
+instalación local de SQL Server y el login con la cuenta del hospital.
 
 ## Decisiones que conviene justificar
 
@@ -17,7 +23,7 @@ La API FastAPI está representada por interfaces y un adaptador HTTP inactivo. N
 | Selectores compartidos                            | `SelectControl` y `DatePicker` implementan `FormValueControl<string>`: reutilizan presentación y teclado sin sustituir las validaciones de Signal Forms.              |
 | Angular CDK                                       | Overlay posiciona los paneles fuera de contenedores que podrían recortarlos; A11y controla y restaura el foco en la confirmación de guardado.                         |
 | Servicios de funcionalidades                      | Los componentes resuelven la interacción y delegan las operaciones. Los servicios permiten compartir el comportamiento sin duplicar el acceso a datos.                |
-| `InventoryGateway`                                | Define el límite de acceso a datos. La configuración inyecta `DemoInventory` ahora y deja preparado `HttpInventory` para la futura API.                               |
+| `InventoryGateway`                                | Define el límite de acceso a datos. La configuración inyecta `HttpInventory` en modo real (`useMock: false`); `DemoInventory` queda como alternativa de pruebas.                               |
 | Estado compartido                                 | `InventoryService` mantiene un snapshot con productos, categorías, lotes, áreas y movimientos. Las señales calculadas actualizan las vistas relacionadas.             |
 | Un perfil de acceso                               | El requisito acordado es Responsable de almacén. Los guardas evitan acceder a las pantallas sin una sesión; los permisos definitivos deben validarse en el backend.   |
 | Datos pequeños                                    | Tres productos bastan para mostrar inventario normal, stock bajo, vencimiento próximo, vencido y trazabilidad.                                                        |
@@ -35,7 +41,7 @@ La API FastAPI está representada por interfaces y un adaptador HTTP inactivo. N
 6. `movements/components/movement-form`: explicar producto, lote, saldo, cantidad y destino; después seguir su servicio.
 7. `core/service/inventory.service.ts`: mostrar cómo la mutación va al gateway y luego se refrescan todos los recursos.
 8. `core/service/demo-inventory.ts`: explicar la validación local y la persistencia del snapshot completo.
-9. `core/service/http-inventory.ts`: mostrar las rutas futuras y la lectura de los cinco recursos en paralelo.
+9. `core/service/http-inventory.ts`: mostrar las rutas implementadas y la lectura de cinco recursos en paralelo.
 10. `history` y `dashboard`: explicar filtros, consultas e indicadores derivados del estado compartido.
 
 ## Explicar un formulario con Signal Forms
@@ -69,7 +75,7 @@ Usuario completa formulario
   → MovementsService delega
   → InventoryService registra mediante InventoryGateway
   → DemoInventory guarda el ejemplo local
-    [futuro: HttpInventory solicita POST /movements]
+    [HttpInventory solicita POST /movements con JWT]
   → InventoryService vuelve a cargar el estado
   → señales calculadas actualizan saldo, historial e indicadores
   → pantalla confirma y enlaza el movimiento
@@ -105,13 +111,13 @@ En la demo, saldo e historial se incorporan a un snapshot y se guardan juntos. E
 | 3   | Entradas y salidas rechazan cantidades vacías, cero, negativas y decimales.                                           | Se repite validación en la demo; deberá existir en la API.                            |
 | 4   | Se muestra saldo por lote y se bloquea cantidad superior a ese saldo.                                                 | La concurrencia real debe resolverse en la transacción del servidor.                  |
 | 5   | El registro válido confirma y enlaza su movimiento con saldos.                                                        | La demo genera el historial local.                                                    |
-| 6   | El ejemplo guarda stock e historial juntos e intenta refrescar; un fallo de consulta no borra el éxito ya confirmado. | La transacción real en SQL Server está pendiente.                                     |
+| 6   | El ejemplo guarda stock e historial juntos e intenta refrescar; un fallo de consulta no borra el éxito ya confirmado. | El procedimiento `usp_RegistrarMovimiento` usa transacción SQL; el rollback ante fallos debe demostrarse por separado.                                     |
 | 7   | Se desactiva el producto; su historial sigue consultable.                                                             | El servidor debe conservar la misma política.                                         |
 | 8   | Mensajes junto a campos y envío inválido bloqueado.                                                                   | La validación del cliente es orientativa, no una barrera de seguridad.                |
 | 9   | Lote vencido deshabilitado para salida y explicación visible.                                                         | La API deberá comprobar fecha y vencimiento nuevamente.                               |
 | 10  | Producto, lote, vencimiento y saldo visibles en las pantallas pertinentes.                                            | La integridad de relaciones deberá protegerse en la BD.                               |
 | 11  | La salida exige un área del catálogo disponible.                                                                      | El servidor debe validar referencia y autorización.                                   |
-| 12  | Guardar y actualizar vuelve a leer el origen configurado; indicadores derivan del estado recibido.                    | Hoy se lee almacenamiento local. La lectura de API/BD requiere la integración futura. |
+| 12  | Guardar y actualizar vuelve a leer el origen configurado; indicadores derivan del estado recibido.                    | Actualmente se consulta FastAPI/SQL Server con `useMock: false`. |
 
 ## Cómo explicar las consultas
 
@@ -129,7 +135,7 @@ Ejecutar `npm run build` y `npm test -- --watch=false` dentro de `frontend`. Exp
 
 Para la exposición puede seguirse el recorrido manual del [README](../README.md): iniciar sesión, crear una categoría y producto, registrar una entrada, intentar salidas inválidas, registrar una salida válida, revisar historial, desactivar el producto y volver a consultar los indicadores. Recargar permite demostrar persistencia local.
 
-La evidencia de integración futura deberá incluir solicitudes a FastAPI, respuestas del servidor, persistencia después de una consulta nueva y pruebas de transacción y concurrencia. Las pruebas unitarias actuales no reemplazan esa evidencia.
+Para sustentar la integración se pueden mostrar las respuestas reales de FastAPI, el stock y el historial después de una entrada y salida, junto con la ejecución de los scripts SQL. Las pruebas unitarias no reemplazan estas comprobaciones; la instalación limpia en el laboratorio todavía debe demostrarse.
 
 ## Preguntas que cada integrante debe poder responder
 
