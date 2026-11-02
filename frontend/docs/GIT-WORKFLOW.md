@@ -1,4 +1,14 @@
-# Gestión del proyecto
+# Gestión del proyecto — ramas actuales
+
+El frontend nació en la rama `Hans`. La integración FastAPI/SQL Server y sus
+correcciones se prepararon en la rama `Jimmy`, desde la que se abrirá un
+**Pull Request** hacia `main` cuando el equipo lo apruebe. El remoto ya está
+configurado. Verificar en GitHub Desktop que el commit y el push estén hechos
+antes del PR. Las instrucciones históricas de abajo describen la fase anterior
+del frontend y **no representan el estado actual del repositorio**.
+
+## Historial del trabajo inicial en el frontend
+
 
 El frontend completo y actualizado está integrado en la rama **`Hans`**, incluyendo paginación, selectores, calendarios, confirmación de productos y los accesos de Hans Orellana y Jimmy Ricce. Por decisión del usuario, el trabajo posterior continúa en `Hans` y no se crean más ramas salvo petición expresa.
 

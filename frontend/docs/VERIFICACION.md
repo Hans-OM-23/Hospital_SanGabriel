@@ -1,11 +1,20 @@
-# Verificación de esta entrega
+# Verificación del frontend e integración
 
-Verificado el 31 de octubre de 2026.
+**Estado comprobado (1 de noviembre de 2026):** `npm run build` terminó
+correctamente y `npm test -- --watch=false` aprobó **140 pruebas en 17 archivos**
+en la computadora del equipo, antes de añadir las dos pruebas de concurrencia
+de `InventoryService`. Hay que repetirlas tras aplicar esta corrección. En Swagger se comprobaron las 11 rutas del backend,
+y Angular mostró el inventario real de SQL Server. Los apartados de abajo
+conservan como **historial** algunas verificaciones anteriores hechas en modo demo.
+No equivalen por sí solos a una instalación limpia en otra computadora.
+
+## Historial de pruebas del frontend
+Verificaciones anteriores del 31 de octubre de 2026.
 
 ## Comprobaciones automatizadas
 
 - `npm run build`: producción compilada correctamente, sin advertencias.
-- `ng test --watch=false`: **17 archivos y 143 pruebas aprobadas**.
+- `ng test --watch=false`: **17 archivos y 143 pruebas (registro histórico)**.
 - Validaciones de Signal Forms: campos obligatorios, código único, precios, cantidades, fechas y categoría.
 - Entradas y salidas: stock por lote, destino obligatorio, bloqueo de vencidos, saldos y conservación de historial.
 - Persistencia: recarga de datos y fallo de almacenamiento sin modificar el estado.
@@ -26,7 +35,8 @@ Recorrido real con datos de prueba:
 5. Salida válida de 3 unidades: stock de 45 a 42; movimiento consultable con lote y destino en el historial.
 6. Consulta de indicadores actualizados y restauración de la muestra pequeña después de verificar.
 
-La integración con un servidor FastAPI y una base SQL Server queda pendiente de la futura fase de backend. Las respuestas HTTP de las pruebas usan el entorno de pruebas de Angular; no contactan una API real.
+Este apartado corresponde a pruebas previas del modo local. La integración
+real se comprobó posteriormente y se resume al comienzo del documento.
 
 ## Ampliación: paginación y búsqueda
 
@@ -46,4 +56,4 @@ En un origen local independiente se registró un producto de ejemplo y se verifi
 
 Se agregan diez pruebas sobre los dos accesos locales: Hans Orellana y Jimmy Ricce. Cubren su identidad, restauración de sesión, rechazo de correos ajenos y del acceso anterior, selección de credenciales desde la pantalla y el mensaje exacto de correo inválido: «Ingresa un correo válido, por ejemplo: example@example.pe».
 
-En navegador se comprobó el inicio y cierre de sesión de ambos usuarios y su nombre en la vista general. La pantalla de acceso se revisó en escritorio y móvil, sin desbordamiento horizontal. Se mantiene un único perfil, Responsable de almacén, y no se conectó ningún backend.
+En navegador se comprobó el inicio y cierre de sesión de ambos usuarios y su nombre en la vista general. La pantalla de acceso se revisó en escritorio y móvil, sin desbordamiento horizontal. El modo demo mantiene un único perfil, Responsable de almacén; posteriormente se conectó el backend real.

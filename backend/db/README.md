@@ -6,17 +6,57 @@ modelo incluye **6 tablas**, claves GUID, relaciones, restricciones, índices,
 
 ## Instalación rápida para la exposición (un solo archivo)
 
-En una instancia **de pruebas** de SQL Server, abrir
+En una instancia **de pruebas** de SQL Server **2016 SP1 o posterior**, abrir
 `INSTALAR_HOSPITAL_SAN_GABRIEL.sql` desde SSMS y ejecutar **F5 una vez**.
 El archivo integra los scripts en el orden correcto, crea una cuenta de
 **demostración** (`admin@hospital.com`, contraseña `HospitalDemo2026!`) si
 no existe y termina con las verificaciones. La cuenta es pública para la demo:
 **no usarla para información real ni publicar el sistema con esa contraseña**.
-El instalador se puede volver a ejecutar sin borrar el inventario existente;
-no restablece la contraseña de usuarios previamente creados.
+El instalador no borra el inventario existente y no restablece contraseñas
+anteriores. Si hubo un error, corregirlo antes de reintentar; este archivo
+**no es un sistema de migraciones**. El último bloque verifica los objetos,
+los datos de demostración y los saldos, y muestra un error explícito si fallan.
 
 Para una instalación real, ejecutar los scripts individuales sin crear la
 cuenta compartida de demostración y usar credenciales propias.
+
+## Conexión de FastAPI en la computadora de la universidad
+
+**Son dos cuentas distintas:** el instalador crea `admin@hospital.com` dentro de
+`dbo.Users` para iniciar sesión en la **web**. No crea el login SQL Server
+identificado por `DB_USER` para que el **backend** se conecte al motor.
+
+1. Preguntar qué instancia y usuario de autenticación SQL proporciona el laboratorio.
+2. Abrir SSMS con una cuenta autorizada, ejecutar el instalador general y verificar
+   el mensaje `INSTALACIÓN VERIFICADA` sin errores en la pestaña Mensajes.
+3. Si la cuenta de `DB_USER` ya puede conectarse a `HospitalSanGabriel` y ejecutar
+   procedimientos, **no hay que crearla ni darle privilegios adicionales**.
+4. Si el login SQL existe pero aún no tiene acceso a la base, un administrador
+   puede ejecutar el siguiente bloque, reemplazando `LOGIN_DE_LABORATORIO` por
+   el **nombre real** de ese login. Nunca pegar contraseñas aquí:
+
+   ```sql
+   USE HospitalSanGabriel;
+   GO
+   IF DATABASE_PRINCIPAL_ID(N'LOGIN_DE_LABORATORIO') IS NULL
+       CREATE USER [LOGIN_DE_LABORATORIO] FOR LOGIN [LOGIN_DE_LABORATORIO];
+   GO
+   GRANT EXECUTE ON SCHEMA::dbo TO [LOGIN_DE_LABORATORIO];
+   GO
+   ```
+
+   Este bloque requiere que el login exista y que quien lo ejecute tenga permiso
+   para crear el usuario de base de datos y asignar permisos. Si no existe el
+   login, debe habilitarlo el responsable de la instancia. **No es necesario
+   conceder `sysadmin` ni `db_owner` a la aplicación**.
+5. Editar `backend/.env` con `DB_SERVER`, `DB_NAME=HospitalSanGabriel`,
+   `DB_USER` y `DB_PASSWORD` de **esa computadora**, conservando la clave JWT
+   requerida por el login web. No cambiar `DB_NAME` a `master`.
+6. Verificar el acceso iniciando FastAPI y probando `GET /api/products` en
+   Swagger después de iniciar sesión en `POST /api/auth/login`.
+
+El instalador general sigue siendo **un solo archivo SQL**. El bloque de permisos
+solo hace falta si la cuenta de SQL Server del laboratorio carece de acceso.
 
 ## Orden exacto en SSMS
 
@@ -69,6 +109,6 @@ marcadas «Esperado: 0 filas» no deberían devolver inconsistencias.
 - No hay borrado físico; el producto se desactiva para preservar su historial.
 
 Las contraseñas de aplicación van como hashes Argon2id en `dbo.Users`.
-La conexión desde FastAPI usa credenciales SQL guardadas **solo en el `.env`
-local**, nunca en estos archivos. No asignar al usuario de aplicación permisos
-más altos de los necesarios.
+FastAPI lee los datos de conexión desde `backend/.env`; el instalador SQL no
+contiene contraseñas de SQL Server. Usar un login del laboratorio con permisos
+limitados a ejecutar los procedimientos.

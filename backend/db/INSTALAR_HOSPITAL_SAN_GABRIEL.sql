@@ -1,7 +1,9 @@
 ﻿/*
   HOSPITAL SAN GABRIEL | INSTALACIÓN COMPLETA EN SQL SERVER
   Ejecute TODO ESTE ARCHIVO desde SSMS usando F5, una sola vez.
-  Requisitos: SQL Server 2016+ y permiso para crear/alterar objetos.
+  Requisitos: SQL Server 2016 SP1+ y permiso para crear/alterar objetos.
+  La conexión DB_USER del backend debe existir como login SQL y tener permiso
+  EXECUTE sobre los procedimientos; el instalador no crea el login ni guarda claves.
 
   Incluye:
     - Base HospitalSanGabriel (solo si no existe)
@@ -1789,6 +1791,83 @@ IF (SELECT COUNT(*) FROM sys.procedures WHERE schema_id = SCHEMA_ID('dbo')
     THROW 51072, N'Instalación incompleta: faltan procedimientos.', 1;
 IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE email=N'admin@hospital.com' AND active=1)
     THROW 51073, N'La cuenta de demostración no está activa.', 1;
+-- Verificación automática de los datos semilla y la integridad del inventario.
+IF (SELECT COUNT(*) FROM dbo.Categories) < 4
+   OR (SELECT COUNT(*) FROM dbo.HospitalAreas) < 4
+    THROW 51074, N'Instalación incompleta: faltan categorías o áreas.', 1;
+IF (SELECT COUNT(*) FROM dbo.Products) < 3
+   OR (SELECT COUNT(*) FROM dbo.Lots) < 3
+   OR (SELECT COUNT(*) FROM dbo.Movements) < 4
+    THROW 51075, N'Instalación incompleta: faltan datos de demostración.', 1;
+IF EXISTS (
+    SELECT 1 FROM sys.foreign_keys
+    WHERE parent_object_id IN (
+        SELECT object_id FROM sys.tables WHERE schema_id=SCHEMA_ID(N'dbo')
+    ) AND (is_disabled=1 OR is_not_trusted=1)
+)
+    THROW 51076, N'Hay claves foráneas deshabilitadas o no verificadas.', 1;
+IF EXISTS (
+    SELECT 1 FROM sys.check_constraints
+    WHERE parent_object_id IN (
+        SELECT object_id FROM sys.tables WHERE schema_id=SCHEMA_ID(N'dbo')
+    ) AND (is_disabled=1 OR is_not_trusted=1)
+)
+    THROW 51077, N'Hay restricciones CHECK deshabilitadas o no verificadas.', 1;
+IF EXISTS (
+    SELECT 1 FROM dbo.Movements AS m
+    INNER JOIN dbo.Lots AS l ON l.lot_id=m.lot_id
+    WHERE m.product_id <> l.product_id
+)
+    THROW 51078, N'Un movimiento corresponde al lote de otro producto.', 1;
+IF EXISTS (
+    SELECT 1 FROM dbo.Movements AS m
+    WHERE m.stock_before < 0 OR m.stock_after < 0
+       OR m.stock_after <> m.stock_before
+            + CASE WHEN m.type='entry' THEN m.quantity ELSE -m.quantity END
+       OR (m.type='entry' AND m.area_id IS NOT NULL)
+       OR (m.type='exit' AND m.area_id IS NULL)
+)
+    THROW 51079, N'Hay movimientos con saldos o destinos incoherentes.', 1;
+IF EXISTS (SELECT 1 FROM dbo.Lots WHERE stock < 0)
+    THROW 51080, N'Hay lotes con stock negativo.', 1;
+IF EXISTS (
+    SELECT 1 FROM dbo.Lots AS l
+    LEFT JOIN dbo.Movements AS m ON m.lot_id=l.lot_id
+    GROUP BY l.lot_id, l.stock
+    HAVING l.stock <> COALESCE(SUM(
+        CASE WHEN m.type='entry' THEN CONVERT(BIGINT,m.quantity)
+             WHEN m.type='exit' THEN -CONVERT(BIGINT,m.quantity)
+             ELSE CONVERT(BIGINT,0) END
+    ),0)
+)
+    THROW 51081, N'El stock de un lote no coincide con sus movimientos.', 1;
+IF EXISTS (
+    SELECT 1 FROM (
+        SELECT product_id, movement_seq, stock_before,
+               LAG(stock_after) OVER (
+                   PARTITION BY product_id ORDER BY movement_seq
+               ) AS previo
+        FROM dbo.Movements
+    ) AS cadena
+    WHERE cadena.previo IS NOT NULL AND cadena.stock_before <> cadena.previo
+)
+    THROW 51082, N'La cadena histórica de saldos del producto está rota.', 1;
+IF EXISTS (
+    SELECT 1 FROM dbo.Products AS p
+    OUTER APPLY (
+        SELECT COALESCE(SUM(CONVERT(BIGINT,l.stock)),0) AS saldo
+        FROM dbo.Lots AS l WHERE l.product_id=p.product_id
+    ) AS lotes
+    OUTER APPLY (
+        SELECT TOP (1) CONVERT(BIGINT,m.stock_after) AS saldo
+        FROM dbo.Movements AS m
+        WHERE m.product_id=p.product_id
+        ORDER BY m.movement_seq DESC
+    ) AS ultimo
+    WHERE lotes.saldo <> COALESCE(ultimo.saldo,0)
+)
+    THROW 51083, N'El saldo de producto no coincide con su historial.', 1;
+
 
 SELECT
     DB_NAME() AS BaseDatos,
@@ -1800,5 +1879,5 @@ SELECT
     (SELECT COUNT(*) FROM dbo.Lots) AS Lotes,
     (SELECT COUNT(*) FROM dbo.Movements) AS Movimientos,
     (SELECT COUNT(*) FROM dbo.Users) AS Usuarios;
-PRINT N'INSTALACIÓN COMPLETADA - compruebe las consultas de consistencia anteriores.';
+PRINT N'INSTALACIÓN VERIFICADA: objetos, datos de demostración y saldos consistentes.';
 GO

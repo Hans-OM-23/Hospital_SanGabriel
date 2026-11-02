@@ -25,6 +25,8 @@ export class InventoryService {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly lastRefresh = signal<Date | null>(null);
+  // Evita que una respuesta lenta y antigua reemplace una recarga más reciente.
+  private refreshSequence = 0;
   readonly warningDays = environment.expirationWarningDays;
   readonly activeProducts = computed(() => this.products().filter((p) => p.active));
   readonly lowStock = computed(() =>
@@ -53,16 +55,23 @@ export class InventoryService {
   );
 
   async refresh(): Promise<void> {
+    const sequence = ++this.refreshSequence;
     this.loading.set(true);
     this.error.set('');
     try {
-      this.state.set(await this.gateway.load());
-      this.lastRefresh.set(new Date());
+      const snapshot = await this.gateway.load();
+      if (sequence === this.refreshSequence) {
+        this.state.set(snapshot);
+        this.lastRefresh.set(new Date());
+      }
     } catch (error) {
+      // El fallo de una solicitud desplazada por otra no debe sobrescribir
+      // ni el estado ni el mensaje de la solicitud más reciente.
+      if (sequence !== this.refreshSequence) return;
       this.error.set(explainError(error).message);
       throw error;
     } finally {
-      this.loading.set(false);
+      if (sequence === this.refreshSequence) this.loading.set(false);
     }
   }
 

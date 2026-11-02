@@ -2,7 +2,10 @@
 
 Aplicación Angular para administrar productos y categorías, registrar entradas y salidas por lote, consultar el historial y revisar indicadores del almacén hospitalario. Incluye inicio de sesión con un perfil: **Responsable de almacén**.
 
-Esta entrega funciona con un ejemplo local pequeño. El adaptador HTTP para la futura API FastAPI está preparado y permanece inactivo. La entrega no incluye servidor, archivos SQL ni una integración comprobada con una base de datos.
+**Estado de integración actual:** Angular usa `useMock: false` y consulta
+FastAPI y SQL Server reales. El backend y los scripts están en `../backend/`.
+El proyecto conserva un modo local `useMock: true` con datos de demostración,
+pero no es el modo configurado para la evaluación.
 
 ## Instalación y ejecución
 
@@ -52,13 +55,15 @@ Configuración actual en `src/environments/environment.ts`:
 
 ```typescript
 export const environment = {
-  useMock: true,
+  useMock: false,
   apiUrl: 'http://localhost:8000/api',
   expirationWarningDays: 730,
 } as const;
 ```
 
-`useMock: true` selecciona `DemoInventory`. La aplicación no necesita iniciar ni contactar un backend. Los cambios del inventario se guardan en `localStorage` con la clave `san-gabriel.inventory.v1` y se recuperan al volver a consultar o recargar la aplicación en el mismo navegador y origen.
+`useMock: false` selecciona `HttpInventory` y requiere FastAPI + SQL Server.
+`useMock: true` sirve solo para las pruebas sin conexión y guarda el ejemplo
+local en `localStorage` bajo `san-gabriel.inventory.v1`.
 
 El ejemplo inicial contiene **3 productos, 4 categorías, 3 lotes, 4 áreas y 4 movimientos**. Incluye un producto próximo a vencer, existencias bajas y un lote vencido para comprobar las alertas. Las fechas se calculan respecto al día en que se genera o restablece el ejemplo; después de guardar cambios, las fechas persistidas se conservan.
 
@@ -132,12 +137,17 @@ Puede ejecutarse después de restablecer el ejemplo. No necesita grandes conjunt
 | Persistencia local        | Recargar el navegador y confirmar que continúan los productos y movimientos registrados. Usar la ayuda para restablecer el ejemplo cuando termine la prueba.                                                               |
 | Adaptación visual         | Revisar el menú móvil, los formularios y el desplazamiento horizontal de las tablas en una pantalla pequeña.                                                                                                               |
 
-En la demo, stock e historial se guardan juntos como un único estado local. La transacción real, el control de concurrencia, los permisos y la persistencia en SQL Server pertenecen a la futura implementación del backend.
+En el modo local de demostración, stock e historial se guardan como un estado
+local. En el modo integrado, FastAPI ejecuta procedimientos almacenados que
+registran stock e historial juntos dentro de una transacción de SQL Server.
 
-## Preparación para FastAPI
+## Integración actual con FastAPI
 
 `HttpInventory` define las solicitudes HTTP y `AuthService` prepara el inicio de sesión remoto. La configuración de Angular selecciona el adaptador mediante `InventoryGateway`. El interceptor agrega el token Bearer únicamente a la URL de API configurada.
 
-Cuando exista el backend, deberá acordarse y comprobarse el [contrato de API](docs/API-CONTRACT.md), configurar `apiUrl` y cambiar `useMock` a `false`. Será necesario reiniciar el servidor de desarrollo para aplicar la configuración. La presencia de ese adaptador no sustituye las pruebas de integración con la API real.
+El [contrato HTTP](docs/API-CONTRACT.md) ya está implementado en `../backend/`.
+El frontend inicia en modo real con `useMock: false`. Si se cambia la opción,
+reiniciar el servidor de desarrollo. Para instalar en otra computadora seguir
+el README de la raíz y el de `../backend/db/`.
 
 La [guía de sustentación](docs/SUSTENTACION.md) explica las decisiones y cómo seguir el recorrido de un dato por el código. La documentación de gestión Git se encuentra en el repositorio principal.

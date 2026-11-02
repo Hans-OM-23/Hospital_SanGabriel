@@ -49,3 +49,11 @@ def test_cuenta_de_demostracion_solo_se_agrega_si_falta() -> None:
     assert "argon2id" in content
     assert "DROP DATABASE" not in content.upper()
     assert "DROP TABLE" not in content.upper()
+
+
+def test_el_instalador_comprueba_consistencia_con_throw() -> None:
+    content = _normalizar(INSTALLER.read_text(encoding="utf-8-sig"))
+    assert "SQL Server 2016 SP1+" in content
+    assert "THROW 51081" in content  # saldo de lote contra movimientos
+    assert "THROW 51082" in content  # secuencia de saldos por producto
+    assert "THROW 51083" in content  # stock final contra lotes

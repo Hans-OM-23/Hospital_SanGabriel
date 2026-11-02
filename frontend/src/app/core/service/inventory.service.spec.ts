@@ -116,6 +116,54 @@ describe('InventoryService: datos actualizados e indicadores', () => {
     expect(inventory.productName('p-3')).toBe('Alcohol al 70 %');
   });
 
+  it('no permite que una recarga antigua sobrescriba datos recientes', async () => {
+    const firstSnapshot = createDemoSeed();
+    const secondSnapshot = createDemoSeed();
+    firstSnapshot.products = firstSnapshot.products.map((p) => ({ ...p, name: 'ANTIGUO' }));
+    secondSnapshot.products = secondSnapshot.products.map((p) => ({ ...p, name: 'RECIENTE' }));
+
+    let completeFirst!: (value: typeof firstSnapshot) => void;
+    let completeSecond!: (value: typeof secondSnapshot) => void;
+    vi.spyOn(gateway, 'load')
+      .mockImplementationOnce(() => new Promise<typeof firstSnapshot>((resolve) => (completeFirst = resolve)))
+      .mockImplementationOnce(() => new Promise<typeof secondSnapshot>((resolve) => (completeSecond = resolve)));
+
+    const first = inventory.refresh();
+    const second = inventory.refresh();
+    expect(inventory.loading()).toBe(true);
+
+    completeSecond(secondSnapshot);
+    await second;
+    expect(inventory.products()[0].name).toBe('RECIENTE');
+    expect(inventory.loading()).toBe(false);
+    const lastUpdate = inventory.lastRefresh();
+
+    completeFirst(firstSnapshot);
+    await first;
+    expect(inventory.products()[0].name).toBe('RECIENTE');
+    expect(inventory.error()).toBe('');
+    expect(inventory.lastRefresh()).toBe(lastUpdate);
+  });
+
+  it('no muestra un fallo tardío de una solicitud desplazada por otra', async () => {
+    const newSnapshot = createDemoSeed();
+    let rejectFirst!: (reason: Error) => void;
+    let completeSecond!: (value: typeof newSnapshot) => void;
+    vi.spyOn(gateway, 'load')
+      .mockImplementationOnce(() => new Promise<typeof newSnapshot>((_, reject) => (rejectFirst = reject)))
+      .mockImplementationOnce(() => new Promise<typeof newSnapshot>((resolve) => (completeSecond = resolve)));
+
+    const first = inventory.refresh();
+    const second = inventory.refresh();
+    completeSecond(newSnapshot);
+    await second;
+    rejectFirst(new ApiError('Una petición antigua falló.'));
+    await expect(first).resolves.toBeUndefined();
+    expect(inventory.products()).toEqual(newSnapshot.products);
+    expect(inventory.error()).toBe('');
+    expect(inventory.loading()).toBe(false);
+  });
+
   it('conserva la última consulta válida y muestra el error cuando falla la actualización', async () => {
     await inventory.refresh();
     const before = {
