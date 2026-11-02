@@ -224,6 +224,19 @@ describe('ProductForm: registro y validaciones del catálogo', () => {
     expect(component.saved()).toBe(true);
   });
 
+  it('al editar solo envía ProductInput, sin id ni active, a FastAPI', async () => {
+    params.next(convertToParamMap({ id: 'p1' }));
+    fixture.detectChanges();
+    component.model.update((model) => ({ ...model, unitPrice: 96 }));
+    service.save.mockResolvedValueOnce({ ...existing, unitPrice: 96 });
+    await component.save(new Event('submit'));
+    const [input, id] = service.save.mock.calls[0] as [Record<string, unknown>, string];
+    expect(id).toBe('p1');
+    expect(input['unitPrice']).toBe(96);
+    expect(input).not.toHaveProperty('id');
+    expect(input).not.toHaveProperty('active');
+  });
+
   it('conserva los datos al editar y cierra la confirmación mediante Escape', async () => {
     params.next(convertToParamMap({ id: 'p1' }));
     fixture.detectChanges();

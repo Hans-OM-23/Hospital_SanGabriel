@@ -5,9 +5,10 @@ Pydantic 2, uv, pyodbc y Microsoft SQL Server. **No utiliza ORM.**
 
 ## Iniciar
 
-1. Copiar `backend/.env.example` como `backend/.env` en el propio equipo y
-   configurar acceso a la base real **HospitalSanGabriel**. El archivo `.env`
-   es privado; no subirlo a Git ni incluirlo en archivos compartidos.
+1. Revisar `backend/.env` y configurar el acceso a **HospitalSanGabriel**
+   en el equipo del laboratorio. Se incluye de forma excepcional para
+   el examen académico; **las credenciales que trae son locales al equipo
+   de desarrollo y deben sustituirse si la instalación es diferente**.
 2. Instalar ODBC Driver 18 for SQL Server y ejecutar los scripts de `db/`
    según `db/README.md` si la base todavía no está instalada.
 3. Desde la carpeta `backend`:
@@ -59,14 +60,14 @@ Remove-Item Env:RUN_DB_TESTS
 Los tests de integración requieren SQL Server accesible desde el equipo y
 una cuenta autorizada. No se consideran superados hasta ejecutarlos con esa
 instancia. La prueba de movimientos/concurrencia puede demostrarse desde
-Swagger y SQL Server según `../docs/GUIA_SUSTENTACION.md`.
+Swagger y SQL Server según `../frontend/docs/SUSTENTACION.md`.
 
 ## Seguridad y lógica del sistema
 
 - SQL Authentication para la aplicación (`DB_USER`, `DB_PASSWORD` solo en `.env`).
 - Argon2id para las contraseñas de `dbo.Users`. JWT HS256 para login.
 - La clave `JWT_SECRET_KEY` debe ser **privada**, con al menos 32 caracteres.
-  La clave pública de `.env.example` es orientativa, **no debe usarse**.
+  No reutilizar la clave del examen en otros entornos.
 - Las escrituras usan `Database.transaction()` y procedimientos almacenados;
   se rechazan códigos duplicados, salidas de lotes vencidos, stock insuficiente
   y referencias inválidas.

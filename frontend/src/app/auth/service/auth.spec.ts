@@ -1,98 +1,91 @@
 import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { environment } from '../../../environments/environment';
 import { AuthService } from './auth';
-import { DEMO_PASSWORD, DEMO_USERS } from './demo-users';
 
-describe('AuthService: acceso de demostración', () => {
+const storageKey = 'sgabriel.session';
+const demoProfile = {
+  id: 'usr-1',
+  name: 'Administrador',
+  email: 'admin@hospital.com',
+  role: 'Responsable de almacén' as const,
+};
+const jwt = (seconds: number) => {
+  const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + seconds }));
+  return `header.${payload}.signature`;
+};
+
+describe('AuthService: autenticación contra FastAPI', () => {
+  let auth: AuthService;
+  let http: HttpTestingController;
   beforeEach(() => {
-    sessionStorage.removeItem('sgabriel.demo-session');
-    TestBed.configureTestingModule({ providers: [provideHttpClient()] });
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-01T17:00:00Z'));
+    sessionStorage.removeItem(storageKey);
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    auth = TestBed.inject(AuthService);
+    http = TestBed.inject(HttpTestingController);
+  });
+  afterEach(() => {
+    http.verify();
+    sessionStorage.removeItem(storageKey);
+    vi.useRealTimers();
   });
 
-  it('rechaza credenciales incorrectas sin crear una sesión', async () => {
-    const auth = TestBed.inject(AuthService);
-    await expect(
-      auth.login({ email: DEMO_USERS[0].email, password: 'incorrecta' }),
-    ).rejects.toThrow('no son correctos');
-    expect(auth.isAuthenticated()).toBe(false);
-    expect(sessionStorage.getItem('sgabriel.demo-session')).toBeNull();
-  });
-
-  it('guarda el perfil y token, nunca la contraseña, y cierra la sesión', async () => {
-    const auth = TestBed.inject(AuthService);
-    await auth.login({ email: DEMO_USERS[0].email, password: DEMO_PASSWORD });
+  it('envía correo y contraseña a FastAPI, guarda un JWT vigente y permite salir', async () => {
+    const pending = auth.login({ email: ' ADMIN@HOSPITAL.COM ', password: 'clave-local' });
+    const request = http.expectOne(`${environment.apiUrl}/auth/login`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ email: 'admin@hospital.com', password: 'clave-local' });
+    request.flush({ accessToken: jwt(1800), user: demoProfile });
+    await pending;
     expect(auth.isAuthenticated()).toBe(true);
-    expect(auth.user()?.role).toBe('Responsable de almacén');
-    const stored = sessionStorage.getItem('sgabriel.demo-session')!;
-    expect(stored).not.toContain('SanGabriel2026!');
-    expect(stored).not.toContain('password');
-    expect(auth.token()).toBeTruthy();
+    expect(auth.hasValidSession()).toBe(true);
+    expect(auth.user()).toEqual(demoProfile);
+    expect(sessionStorage.getItem(storageKey)).not.toContain('clave-local');
     auth.logout();
     expect(auth.isAuthenticated()).toBe(false);
+    expect(sessionStorage.getItem(storageKey)).toBeNull();
+  });
+
+  it('muestra un mensaje comprensible ante credenciales incorrectas', async () => {
+    const pending = auth.login({ email: 'admin@hospital.com', password: 'incorrecta' });
+    http.expectOne(`${environment.apiUrl}/auth/login`).flush(
+      { detail: 'Usuario o contraseña incorrectos.' },
+      { status: 401, statusText: 'Unauthorized' },
+    );
+    await expect(pending).rejects.toThrow('no son correctos');
+    expect(auth.hasValidSession()).toBe(false);
+  });
+
+  it('restaura una sesión vigente y descarta tokens vencidos al cargar la página', () => {
+    sessionStorage.setItem(storageKey, JSON.stringify({ accessToken: jwt(600), user: demoProfile }));
+    const second = TestBed.runInInjectionContext(() => new AuthService());
+    expect(second.hasValidSession()).toBe(true);
+    sessionStorage.setItem(storageKey, JSON.stringify({ accessToken: jwt(-1), user: demoProfile }));
+    const expired = TestBed.runInInjectionContext(() => new AuthService());
+    expect(expired.hasValidSession()).toBe(false);
+    expect(sessionStorage.getItem(storageKey)).toBeNull();
+  });
+
+  it('descarta el token al vencer sin exigir un nuevo comando o recarga', async () => {
+    const pending = auth.login({ email: demoProfile.email, password: 'clave-local' });
+    http.expectOne(`${environment.apiUrl}/auth/login`).flush({ accessToken: jwt(2), user: demoProfile });
+    await pending;
+    vi.advanceTimersByTime(3000);
+    expect(auth.hasValidSession()).toBe(false);
     expect(auth.token()).toBeNull();
-    expect(sessionStorage.getItem('sgabriel.demo-session')).toBeNull();
+    expect(sessionStorage.getItem(storageKey)).toBeNull();
   });
 
-  it.each(DEMO_USERS)('inicia sesión con la identidad de $name', async (user) => {
-    const auth = TestBed.inject(AuthService);
-    await auth.login({ email: `  ${user.email.toUpperCase()}  `, password: DEMO_PASSWORD });
-    expect(auth.isAuthenticated()).toBe(true);
-    expect(auth.user()).toEqual(user);
-    expect(JSON.parse(sessionStorage.getItem('sgabriel.demo-session')!).user).toEqual(user);
-  });
-
-  it.each(['desconocido@sgabriel.pe', 'almacen@sgabriel.pe'])(
-    'rechaza el correo no autorizado %s aunque la contraseña sea correcta',
-    async (email) => {
-      const auth = TestBed.inject(AuthService);
-      await expect(auth.login({ email, password: DEMO_PASSWORD })).rejects.toThrow(
-        'no son correctos',
-      );
-      expect(auth.isAuthenticated()).toBe(false);
-      expect(auth.user()).toBeNull();
-      expect(sessionStorage.getItem('sgabriel.demo-session')).toBeNull();
-    },
-  );
-
-  it.each(DEMO_USERS)('restaura la sesión vigente de $name', (user) => {
-    sessionStorage.setItem(
-      'sgabriel.demo-session',
-      JSON.stringify({ accessToken: 'san-gabriel-demo-session', user }),
-    );
-    const auth = TestBed.inject(AuthService);
-    expect(auth.isAuthenticated()).toBe(true);
-    expect(auth.user()).toEqual(user);
-    expect(auth.token()).toBe('san-gabriel-demo-session');
-  });
-
-  it('descarta la sesión del usuario de demostración anterior', () => {
-    sessionStorage.setItem(
-      'sgabriel.demo-session',
-      JSON.stringify({
-        accessToken: 'san-gabriel-demo-session',
-        user: {
-          id: 'demo-1',
-          name: 'María Torres',
-          email: 'almacen@sgabriel.pe',
-          role: 'Responsable de almacén',
-        },
-      }),
-    );
-    const auth = TestBed.inject(AuthService);
-    expect(auth.isAuthenticated()).toBe(false);
-    expect(auth.user()).toBeNull();
-    expect(auth.token()).toBeNull();
-    expect(sessionStorage.getItem('sgabriel.demo-session')).toBeNull();
-  });
-
-  it('ignora sesiones manipuladas o incompletas al cargar', () => {
-    sessionStorage.setItem(
-      'sgabriel.demo-session',
-      JSON.stringify({ user: { role: 'Administrador' } }),
-    );
-    const auth = TestBed.inject(AuthService);
-    expect(auth.isAuthenticated()).toBe(false);
-    expect(sessionStorage.getItem('sgabriel.demo-session')).toBeNull();
+  it('rechaza una respuesta de login sin JWT válido o sin datos de usuario', async () => {
+    const pending = auth.login({ email: demoProfile.email, password: 'clave-local' });
+    http.expectOne(`${environment.apiUrl}/auth/login`).flush({ accessToken: 'invalido', user: demoProfile });
+    await expect(pending).rejects.toThrow('sesión incompleta');
+    expect(auth.hasValidSession()).toBe(false);
   });
 });

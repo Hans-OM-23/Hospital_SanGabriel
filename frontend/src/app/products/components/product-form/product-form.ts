@@ -148,13 +148,17 @@ export class ProductForm {
     );
     required(path.unitPrice, { message: 'Ingresa el precio unitario.' });
     validate(path.unitPrice, ({ value }) =>
-      Number.isNaN(value()) || (Number.isFinite(value()) && value() > 0)
+      Number.isNaN(value()) ||
+      (Number.isFinite(value()) &&
+        value() > 0 &&
+        value() <= 9999999999.99 &&
+        Number(value().toFixed(2)) === value())
         ? undefined
-        : { kind: 'price', message: 'El precio debe ser un número mayor que cero.' },
+        : { kind: 'price', message: 'El precio debe ser positivo y tener máximo dos decimales.' },
     );
     required(path.minStock, { message: 'Ingresa el stock mínimo.' });
     validate(path.minStock, ({ value }) =>
-      Number.isNaN(value()) || (Number.isSafeInteger(value()) && value() >= 0)
+      Number.isNaN(value()) || (Number.isSafeInteger(value()) && value() >= 0 && value() <= 2147483647)
         ? undefined
         : {
             kind: 'integer',
@@ -186,7 +190,17 @@ export class ProductForm {
       }
       const product = this.service.products().find((p) => p.id === id);
       if (product && this.initializedId !== id) {
-        this.model.set({ ...product, expirationDate: product.expirationDate ?? '' });
+        this.model.set({
+          code: product.code,
+          name: product.name,
+          description: product.description,
+          categoryId: product.categoryId,
+          unit: product.unit,
+          unitPrice: product.unitPrice,
+          minStock: product.minStock,
+          tracksExpiration: product.tracksExpiration,
+          expirationDate: product.expirationDate ?? '',
+        });
         this.initializedId = id;
         this.saved.set(false);
         this.successOpen.set(false);
