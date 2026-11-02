@@ -58,6 +58,13 @@ export class ProductList {
   toggleDetails(id: string) {
     this.selectedId.update((value) => (value === id ? null : id));
   }
+  toggleConfirmation(id: string, table: HTMLElement) {
+    const opening = this.confirmId() !== id;
+    this.confirmId.set(opening ? id : null);
+    if (opening && window.matchMedia('(max-width: 600px)').matches) {
+      table.scrollTo({ left: 0, behavior: 'auto' });
+    }
+  }
   changePage(page: number) {
     if (page === this.pagination.page()) return;
     this.selectedId.set(null);
